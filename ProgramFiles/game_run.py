@@ -15,23 +15,6 @@ SCREEN = pygame.display.set_mode(SIZE)
 shoot_sound = pygame.mixer.Sound('data\\shoot.wav')
 shoot_sound.set_volume(0.3)
 
-
-def load_image(name, colorkey=None):
-    fullname = os.path.join('images\\', name)
-    if not os.path.isfile(fullname):
-        print(f"Файл с изображением '{fullname}' не найден")
-        exit(0)
-    image = pygame.image.load(fullname)
-    if colorkey is not None:
-        image = image.convert()
-        if colorkey == -1:
-            colorkey = image.get_at((0, 0))
-        image.set_colorkey(colorkey)
-    else:
-        image = image.convert_alpha()
-    return image
-
-
 GAME_TITLE_IMG = pygame.transform.scale(load_image('game_title.png', -1), (300, 200))
 
 
