@@ -1,6 +1,5 @@
 import pygame
 
-
 # !!! CONSTS !!!
 GAME_TITLE = "SPACE WARS"
 SIZE = WIDTH, HEIGHT = 800, 800
