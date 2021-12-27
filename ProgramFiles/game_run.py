@@ -1,6 +1,6 @@
 from ProgramFiles.consts import *
 from ProgramFiles.units_sprites import *
-from Buttons import Button
+from ProgramFiles.buttons import Button
 from itertools import cycle
 
 
@@ -12,7 +12,7 @@ def terminate():
 pygame.init()
 pygame.mixer.init()
 SCREEN = pygame.display.set_mode(SIZE)
-shoot_sound = pygame.mixer.Sound('data\\shoot.wav')
+shoot_sound = pygame.mixer.Sound(r'.\music\shoot.wav')
 shoot_sound.set_volume(0.3)
 
 GAME_TITLE_IMG = pygame.transform.scale(load_image('game_title.png', -1), (300, 200))
@@ -23,7 +23,7 @@ def menu():
     pygame.mixer.init()
 
     font = pygame.font.SysFont('Jokerman', 48)
-    fon_sound = pygame.mixer.Sound('data\\fon_music.mp3')
+    fon_sound = pygame.mixer.Sound(r'.\music\fon_music.wav')
     clock = pygame.time.Clock()
 
     first_bg = FirstBg()
