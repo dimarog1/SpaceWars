@@ -1,12 +1,17 @@
 import os
-from ProgramFiles.consts import *
 
+from ProgramFiles.consts import *
 
 # !!! SPRITES GROUPS !!!
 all_sprites = pygame.sprite.Group()
+
 player_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
+
+all_shots_group = pygame.sprite.Group()
 player_shots_group = pygame.sprite.Group()
+enemy_shots_group = pygame.sprite.Group()
+
 bg_group = pygame.sprite.Group()
 
 
@@ -26,15 +31,16 @@ def load_image(name, colorkey=None):
     return image
 
 
-# Игрок
-class Player(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__(player_group)
-        self.image = pygame.transform.scale(load_image('player.png'), (100, 100))
+class Ship(pygame.sprite.Sprite):
+    def __init__(self, position):
+        super().__init__()
+        self.image = pygame.transform.scale(load_image('enemy_level_one.png'), (100, 100))
+        self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.rect = self.image.get_rect().move(WIDTH // 2 - self.width // 2, HEIGHT - 130)
+        self.rect = self.image.get_rect().move(*position)
         self.speed_of_ship = 5
+        self.hp = 1
 
     def change_pos(self, dx, dy):
         if 0 <= self.rect.x + dx * self.speed_of_ship <= WIDTH - self.width and \
@@ -43,33 +49,55 @@ class Player(pygame.sprite.Sprite):
                 self.speed_of_ship * dx,
                 self.speed_of_ship * dy
             )
+
+    def check_alive(self):
+        # Столкновения с снарядом
+        if self.hp <= 0:
+            self.kill()
+
+    def start_shooting(self):
+        shot = PlayerProjectileLevelOne()
+
+
+# Игрок
+class Player(Ship, pygame.sprite.Sprite):
+    def __init__(self, position=(100, 100)):
+        Ship.__init__(self, position)
+        pygame.sprite.Sprite.__init__(self, player_group)
+        self.image = pygame.transform.scale(load_image('player.png'), (100, 100))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect().move(WIDTH // 2 - self.width // 2, HEIGHT - 130)
 
 
 # Враг первого уровня
-class EnemyLevelOne(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__(enemy_group)
-        self.image = pygame.transform.scale(load_image('enemy_level_one.png'), (100, 100))
+class EnemyLevelOne(Ship, pygame.sprite.Sprite):
+    def __init__(self, position):
+        Ship.__init__(self, position)
+        pygame.sprite.Sprite.__init__(self, enemy_group)
+        self.image = pygame.transform.scale(load_image('enemy_level_one.png'), (70, 70))
+        self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.rect = self.image.get_rect().move(WIDTH // 2 - self.width // 2, 130)
-        self.speed_of_ship = 5
+        self.speed_of_ship = 3
+        self.hp = 5
 
     def change_pos(self, dx, dy):
-        if 0 <= self.rect.x + dx * self.speed_of_ship <= WIDTH - self.width and \
-                self.height <= self.rect.y + dy * self.speed_of_ship + self.height <= HEIGHT:
+        if 50 <= self.rect.x + dx * self.speed_of_ship <= WIDTH - self.width - 50:
             self.rect = self.rect.move(
                 self.speed_of_ship * dx,
                 self.speed_of_ship * dy
             )
+        else:
+            self.speed_of_ship *= -1
 
 
 # Выстрел
-class ProjectileLevelOne(pygame.sprite.Sprite):
+class Projectile(pygame.sprite.Sprite):
     def __init__(self, parent_ship):
-        super().__init__(player_shots_group)
+        super().__init__()
         self.parent_ship = parent_ship
         self.image = pygame.transform.scale(load_image('shot.png'), (20, 30))
+        self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.rect = self.image.get_rect().move(
@@ -78,9 +106,52 @@ class ProjectileLevelOne(pygame.sprite.Sprite):
         )
         self.speed_of_shot = 10
 
+
+# Выстрел игрока
+class PlayerProjectileLevelOne(Projectile, pygame.sprite.Sprite):
+    def __init__(self, parent_ship):
+        Projectile.__init__(self, parent_ship)
+        pygame.sprite.Sprite.__init__(self, player_shots_group)
+        self.image = pygame.transform.scale(load_image('shot.png'), (20, 30))
+
     def update(self):
+        # Столкновения с кораблём
+        for enemy in enemy_group:
+            if pygame.sprite.collide_mask(self, enemy):
+                enemy.hp -= 1
+                self.kill()
+                return
+
+        # Перемщение снаряда
         if self.rect.y - self.speed_of_shot >= 0 - self.height:
             self.rect.y -= self.speed_of_shot
+        else:
+            self.kill()
+
+
+# Выстрел врага
+class EnemyProjectileLevelOne(Projectile, pygame.sprite.Sprite):
+    def __init__(self, parent_ship):
+        Projectile.__init__(self, parent_ship)
+        pygame.sprite.Sprite.__init__(self, enemy_shots_group)
+        self.image = pygame.transform.rotate(self.image, 180)
+        self.rect = self.image.get_rect().move(
+            self.parent_ship.rect.x + self.parent_ship.width // 2 - self.width // 2,
+            self.parent_ship.rect.y + self.parent_ship.rect.height
+        )
+        self.speed_of_shot = 5
+
+    def update(self):
+        # Столкновения с кораблём
+        for player in player_group:
+            if pygame.sprite.collide_mask(self, player):
+                player.hp -= 1
+                self.kill()
+                return
+
+        # Перемщение снаряда
+        if self.rect.y + self.speed_of_shot <= HEIGHT + self.height:
+            self.rect.y += self.speed_of_shot
         else:
             self.kill()
 

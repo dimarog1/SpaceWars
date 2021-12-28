@@ -15,6 +15,9 @@ SCREEN = pygame.display.set_mode(SIZE)
 shoot_sound = pygame.mixer.Sound(r'.\music\shoot.wav')
 shoot_sound.set_volume(0.3)
 
+first_bg = FirstBg()
+second_bg = SecondBg()
+
 GAME_TITLE_IMG = pygame.transform.scale(load_image('game_title.png', -1), (300, 200))
 
 
@@ -25,9 +28,6 @@ def menu():
     font = pygame.font.SysFont('Jokerman', 48)
     fon_sound = pygame.mixer.Sound(r'.\music\fon_music.wav')
     clock = pygame.time.Clock()
-
-    first_bg = FirstBg()
-    second_bg = SecondBg()
 
     running = True
 
@@ -66,9 +66,6 @@ def start_screen():
 
     clock = pygame.time.Clock()
     blink_event = pygame.USEREVENT + 0
-
-    first_bg = FirstBg()
-    second_bg = SecondBg()
 
     font = pygame.font.Font(None, 48)
     string_rendered = font.render("Press space key to start", True, pygame.Color('white'))
@@ -118,12 +115,13 @@ def main():
     running = True
 
     player = Player()
-    enemy = EnemyLevelOne()
+    enemy1 = EnemyLevelOne((100, 50))
     dx = dy = 0
     count = 1
 
-    first_bg = FirstBg()
-    second_bg = SecondBg()
+    # Скорость выстрела (чем меньше число, тем больше скорость)
+    player_speed_shooting = 10
+    enemy_speed_shooting = 60
 
     while running:
 
@@ -151,15 +149,31 @@ def main():
                 if event.key == pygame.K_RIGHT:
                     dx += -1
 
-        if count % 15 == 0:
-            # ВВылет выстрела
-            shot = ProjectileLevelOne(player)
-            shoot_sound.play()
+        if count % player_speed_shooting == 0:
+            # Вылет выстрела
+            if player.alive():
+                player_shot = PlayerProjectileLevelOne(player)
+                shoot_sound.play()
+
+        if count % enemy_speed_shooting == 0:
+            for enemy in enemy_group:
+                if enemy.alive():
+                    enemy_shot = EnemyProjectileLevelOne(enemy1)
+                    shoot_sound.play()
 
         bg_group.draw(SCREEN)
         bg_group.update()
+
+        for enemy in enemy_group:
+            enemy.check_alive()
+        player.check_alive()
+
         player_shots_group.update()
+        enemy_shots_group.update()
+
         player.change_pos(dx, dy)
+
+        enemy1.change_pos(1, 0)
 
         clock.tick(FPS)
 
@@ -167,6 +181,7 @@ def main():
         player_group.draw(SCREEN)
         enemy_group.draw(SCREEN)
         player_shots_group.draw(SCREEN)
+        enemy_shots_group.draw(SCREEN)
         pygame.display.flip()
         count += 1
 
