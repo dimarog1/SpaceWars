@@ -13,7 +13,7 @@ pygame.init()
 pygame.mixer.init()
 SCREEN = pygame.display.set_mode(SIZE)
 shoot_sound = pygame.mixer.Sound(r'.\music\shoot.wav')
-shoot_sound.set_volume(0.3)
+shoot_sound.set_volume(0.1)
 
 first_bg = FirstBg()
 second_bg = SecondBg()
@@ -73,6 +73,7 @@ def start_screen():
     intro_rect.center = SCREEN.get_rect().center
     intro_rect.top, intro_rect.x = 700, 200
     off_intro_text = pygame.Surface(intro_rect.size)
+    off_intro_text.set_colorkey((0, 0, 0))
     blink_surfaces = cycle([string_rendered, off_intro_text])
     blink_surface = next(blink_surfaces)
     pygame.time.set_timer(blink_event, 800)
@@ -120,8 +121,8 @@ def main():
     count = 1
 
     # Скорость выстрела (чем меньше число, тем больше скорость)
-    player_speed_shooting = 10
-    enemy_speed_shooting = 60
+    player_speed_shooting = 20
+    enemy_speed_shooting = 30
 
     while running:
 
@@ -153,7 +154,7 @@ def main():
             # Вылет выстрела
             if player.alive():
                 player_shot = PlayerProjectileLevelOne(player)
-                shoot_sound.play()
+                # shoot_sound.play()
 
         if count % enemy_speed_shooting == 0:
             for enemy in enemy_group:
