@@ -12,6 +12,8 @@ all_shots_group = pygame.sprite.Group()
 player_shots_group = pygame.sprite.Group()
 enemy_shots_group = pygame.sprite.Group()
 
+boom_group = pygame.sprite.Group()
+
 bg_group = pygame.sprite.Group()
 
 
@@ -33,8 +35,8 @@ def load_image(name, colorkey=None):
 
 class Ship(pygame.sprite.Sprite):
     def __init__(self, position):
-        super().__init__()
-        self.image = pygame.transform.scale(load_image('enemy_level_one.png'), (100, 100))
+        super().__init__(all_sprites)
+        self.image = pygame.transform.scale(load_image('player.png'), (100, 100))
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
@@ -51,22 +53,25 @@ class Ship(pygame.sprite.Sprite):
             )
 
     def check_alive(self):
-        # Столкновения с снарядом
+        # Проверяем количство hp
         if self.hp <= 0:
             self.kill()
-
-    def start_shooting(self):
-        shot = PlayerProjectileLevelOne()
+            boom = BoomSprite(self)
 
 
 # Игрок
 class Player(Ship, pygame.sprite.Sprite):
-    def __init__(self, position=(100, 100)):
+    def __init__(self, position=(0, 0)):
         Ship.__init__(self, position)
         pygame.sprite.Sprite.__init__(self, player_group)
         self.image = pygame.transform.scale(load_image('player.png'), (100, 100))
         self.mask = pygame.mask.from_surface(self.image)
-        self.rect = self.image.get_rect().move(WIDTH // 2 - self.width // 2, HEIGHT - 130)
+        self.rect = self.image.get_rect().move(WIDTH // 2 - self.width // 2, HEIGHT + 10)
+
+    def starting_ship(self):
+        if self.rect.y >= HEIGHT - 130:
+            return True
+        return False
 
 
 # Враг первого уровня
@@ -94,7 +99,7 @@ class EnemyLevelOne(Ship, pygame.sprite.Sprite):
 # Выстрел
 class Projectile(pygame.sprite.Sprite):
     def __init__(self, parent_ship):
-        super().__init__()
+        super().__init__(all_sprites)
         self.parent_ship = parent_ship
         self.image = pygame.transform.scale(load_image('shot.png'), (20, 30))
         self.mask = pygame.mask.from_surface(self.image)
@@ -152,6 +157,37 @@ class EnemyProjectileLevelOne(Projectile, pygame.sprite.Sprite):
         # Перемщение снаряда
         if self.rect.y + self.speed_of_shot <= HEIGHT + self.height:
             self.rect.y += self.speed_of_shot
+        else:
+            self.kill()
+
+
+# Анимация взрыва
+class BoomSprite(pygame.sprite.Sprite):
+    def __init__(self, parent):
+        super().__init__(boom_group)
+        self.parent = parent
+        self.sheet = load_image('boom.png')
+        self.columns = 8
+        self.rows = 6
+        self.frames = []
+        self.cut_sheet(self.sheet, self.columns, self.rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.rect.move(parent.rect.x, parent.rect.y)
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self):
+        if self.cur_frame + 1 < self.columns * self.rows:
+            self.cur_frame += 1
+            self.image = pygame.transform.scale(self.frames[self.cur_frame], (self.parent.width, self.parent.height))
         else:
             self.kill()
 

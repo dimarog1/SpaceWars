@@ -113,16 +113,29 @@ def main():
     pygame.display.set_caption(GAME_TITLE)
     clock = pygame.time.Clock()
 
-    running = True
-
     player = Player()
     enemy1 = EnemyLevelOne((100, 50))
     dx = dy = 0
     count = 1
 
     # Скорость выстрела (чем меньше число, тем больше скорость)
-    player_speed_shooting = 20
-    enemy_speed_shooting = 30
+    player_speed_shooting = 15
+    enemy_speed_shooting = 60
+
+    # Выпуск корабля игрока
+    while player.starting_ship():
+        player.rect.y -= 1
+
+        bg_group.draw(SCREEN)
+        bg_group.update()
+        clock.tick(FPS)
+
+        # Отрисовка
+        player_group.draw(SCREEN)
+        enemy_group.draw(SCREEN)
+        pygame.display.flip()
+
+    running = True
 
     while running:
 
@@ -165,16 +178,23 @@ def main():
         bg_group.draw(SCREEN)
         bg_group.update()
 
+        # Удаление кораблей, если они уничтожены
         for enemy in enemy_group:
             enemy.check_alive()
-        player.check_alive()
+            if pygame.sprite.collide_mask(player, enemy):
+                player.hp -= 1
+        for pl in player_group:
+            pl.check_alive()
 
         player_shots_group.update()
         enemy_shots_group.update()
+        boom_group.update()
 
-        player.change_pos(dx, dy)
+        if player.alive():
+            player.change_pos(dx, dy)
 
-        enemy1.change_pos(1, 0)
+        for enemy in enemy_group:
+            enemy.change_pos(1, 0)
 
         clock.tick(FPS)
 
@@ -183,6 +203,7 @@ def main():
         enemy_group.draw(SCREEN)
         player_shots_group.draw(SCREEN)
         enemy_shots_group.draw(SCREEN)
+        boom_group.draw(SCREEN)
         pygame.display.flip()
         count += 1
 
