@@ -1,6 +1,8 @@
 import os
+from music.sounds import boom_sound
 
 from ProgramFiles.consts import *
+pygame.mixer.init()
 
 # !!! SPRITES GROUPS !!!
 all_sprites = pygame.sprite.Group()
@@ -57,6 +59,7 @@ class Ship(pygame.sprite.Sprite):
         if self.hp <= 0:
             self.kill()
             boom = BoomSprite(self)
+            boom_sound.play()
 
 
 # Игрок
