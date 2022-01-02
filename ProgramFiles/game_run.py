@@ -3,7 +3,7 @@ import sqlite3
 
 from ProgramFiles.consts import *
 from ProgramFiles.units_sprites import *
-from ProgramFiles.buttons import Button, SpinBox
+from ProgramFiles.buttons import *
 from itertools import cycle
 from music.sounds import boom_sound, shoot_sound, btn_sound, fon_sound
 
@@ -19,10 +19,13 @@ SCREEN = pygame.display.set_mode(SIZE)
 
 con = sqlite3.connect('settings.db')
 cur = con.cursor()
-res = list(cur.execute("""SELECT music_sound, music_effects_sound FROM settings_values"""))
+cur1 = con.cursor()
 
+loud = cur.execute("""SELECT music_sound, music_effects_sound FROM volume_values""")
+bindings = cur1.execute("""SELECT Key_up, Key_down, Key_right, Key_left FROM key_bindings""")
 
-loud_of_menu_music, loud_of_effects = list(map(float, *res))
+loud_of_menu_music, loud_of_effects = map(float, *loud)
+KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT = map(int, *bindings)
 
 first_bg = FirstBg()
 second_bg = SecondBg()
@@ -43,13 +46,10 @@ def menu():
 
     running = True
 
-    music_sound_spinbox = SpinBox(400, 10, loud_of_menu_music)
-    music_effects_sound_spinbox = SpinBox(400, 70, loud_of_effects)
-
-    play_btn = Button(350, 240, 'Play')
-    shop_btn = Button(350, 300, 'Shop')
-    settings_btn = Button(350, 360, 'Settings')
-    quit_btn = Button(350, 420, 'Quit')
+    play_btn = Button(font, 350, 240, 'Play')
+    shop_btn = Button(font, 350, 310, 'Shop')
+    settings_btn = Button(font, 350, 380, 'Settings')
+    quit_btn = Button(font, 350, 450, 'Quit')
 
     fon_sound.play(-1)
 
@@ -62,25 +62,24 @@ def menu():
         if play_btn.is_clicked():
             fon_sound.stop()
             btn_sound.play()
-            main()
+            return main()
 
         if quit_btn.is_clicked():
             btn_sound.play()
-            pygame.time.delay(200)
             terminate()
 
         if settings_btn.is_clicked():
             btn_sound.play()
-            settings(music_sound_spinbox, music_effects_sound_spinbox)
+            settings()
 
         bg_group.draw(SCREEN)
         bg_group.update()
         SCREEN.blit(GAME_TITLE_IMG, (250, 50))
 
-        play_btn.render(SCREEN, font)
-        shop_btn.render(SCREEN, font)
-        settings_btn.render(SCREEN, font)
-        quit_btn.render(SCREEN, font)
+        play_btn.render(SCREEN)
+        shop_btn.render(SCREEN)
+        settings_btn.render(SCREEN)
+        quit_btn.render(SCREEN)
 
         clock.tick(FPS)
         pygame.display.flip()
@@ -114,12 +113,10 @@ def start_screen():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     pygame.mixer.quit()
-                    menu()
                     return
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if intro_rect.x < event.pos[0] < intro_rect.x + intro_rect.width\
                         and intro_rect.y < event.pos[1] < intro_rect.height + intro_rect.y:
-                    menu()
                     return
             elif event.type == blink_event:
                 blink_surface = next(blink_surfaces)
@@ -134,19 +131,39 @@ def start_screen():
         pygame.display.flip()
 
 
-def settings(menu_music, effects_music):
+def settings():
+    global KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT, loud_of_menu_music, loud_of_effects
+
     clock = pygame.time.Clock()
-    surface = pygame.Surface((WIDTH, HEIGHT))
+    surface = pygame.Surface(SIZE)
     font = pygame.font.Font(None, 38)
 
     surface.fill((128, 128, 128))
-    surface.set_alpha(30)
+    # surface.set_alpha(30)
 
-    back_btn = Button(20, 750, 'Back')
-    apply_btn = Button(700, 750, 'Apply')
+    back_btn = Button(font, 20, 750, 'Back')
+    apply_btn = Button(font, 700, 750, 'Apply')
 
-    surface.blit(font.render('Menu music', 1, (255, 255, 255)), (20, 20))
-    surface.blit(font.render('Effects music', 1, (255, 255, 255)), (20, 80))
+    pg_key = pygame.key
+
+    music_sound_spinbox = SpinBox(400, 55, loud_of_menu_music)
+    music_effects_sound_spinbox = SpinBox(400, 115, loud_of_effects)
+
+    move_up_k = InputBox(400, 235, 300, 30, pg_key.name(KEY_UP))
+    move_down_k = InputBox(400, 295, 300, 30, pg_key.name(KEY_DOWN))
+    move_right_k = InputBox(400, 355, 300, 30, pg_key.name(KEY_RIGHT))
+    move_left_k = InputBox(400, 415, 300, 30, pg_key.name(KEY_LEFT))
+    keys = [move_up_k, move_down_k, move_right_k, move_left_k]
+
+    display_text(surface, 'Sound', (WIDTH - 129) // 2, 10)
+    display_text(surface, 'Menu music volume', 20, 60, 38)
+    display_text(surface, 'Effects music volume', 20, 120, 38)
+
+    display_text(surface, 'Controls', (WIDTH - 129) // 2, 180, 45)
+    display_text(surface, 'Move forward', 20, 240, 38)
+    display_text(surface, 'Move back', 20, 300, 38)
+    display_text(surface, 'Move right', 20, 360, 38)
+    display_text(surface, 'Move left', 20, 420, 38)
 
     is_running = True
     while is_running:
@@ -155,26 +172,54 @@ def settings(menu_music, effects_music):
             if event.type == pygame.QUIT:
                 is_running = False
                 terminate()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return
+                else:
+                    # изменение текста в rect
+                    for key in keys:
+                        key.update_text(event)
+
         if back_btn.is_clicked():
             return
         elif apply_btn.is_clicked():
-            cur.execute("""UPDATE settings_values
-                                SET music_sound = ?""", (str(menu_music.curr_value),))
+            cur.execute("""UPDATE volume_values
+                                SET music_sound = ?""", (str(music_sound_spinbox.curr_value),))
+            cur.execute("""UPDATE volume_values
+                                SET music_effects_sound = ?""", (str(music_effects_sound_spinbox.curr_value),))
+            cur.execute("""UPDATE key_bindings
+                                SET Key_up = ?""", (pg_key.key_code(move_up_k.text),))
+            cur.execute("""UPDATE key_bindings
+                                SET Key_down = ?""", (pg_key.key_code(move_down_k.text),))
+            cur.execute("""UPDATE key_bindings
+                                SET Key_left = ?""", (pg_key.key_code(move_left_k.text),))
+            cur.execute("""UPDATE key_bindings
+                                SET Key_right = ?""", (pg_key.key_code(move_right_k.text),))
             con.commit()
-            cur.execute("""UPDATE settings_values
-                                SET music_effects_sound = ?""", (str(effects_music.curr_value),))
-            con.commit()
 
-            shoot_sound.set_volume(effects_music.curr_value)
-            boom_sound.set_volume(effects_music.curr_value)
-            fon_sound.set_volume(menu_music.curr_value)
-            btn_sound.set_volume(menu_music.curr_value)
+            loud_of_menu_music = music_sound_spinbox.curr_value
+            loud_of_effects = music_effects_sound_spinbox.curr_value
 
-        menu_music.render(surface, font)
-        effects_music.render(surface, font)
+            shoot_sound.set_volume(loud_of_effects)
+            boom_sound.set_volume(loud_of_effects)
+            fon_sound.set_volume(loud_of_menu_music)
+            btn_sound.set_volume(loud_of_menu_music)
 
-        back_btn.render(surface, font)
-        apply_btn.render(surface, font)
+            KEY_UP = pg_key.key_code(move_up_k.text)
+            KEY_DOWN = pg_key.key_code(move_down_k.text)
+            KEY_RIGHT = pg_key.key_code(move_right_k.text)
+            KEY_LEFT = pg_key.key_code(move_left_k.text)
+
+        # Отрисовка
+        music_sound_spinbox.render(surface, font)
+        music_effects_sound_spinbox.render(surface, font)
+
+        back_btn.render(surface)
+        apply_btn.render(surface)
+
+        for key1 in keys:
+            key1.update()
+            key1.draw(surface, 7)
 
         clock.tick(FPS)
         pygame.display.flip()
@@ -213,25 +258,29 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    if pause():
+                        menu()
 
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
+                if event.key == KEY_UP:
                     dy += -1
-                if event.key == pygame.K_DOWN:
+                if event.key == KEY_DOWN:
                     dy += 1
-                if event.key == pygame.K_LEFT:
+                if event.key == KEY_LEFT:
                     dx += -1
-                if event.key == pygame.K_RIGHT:
+                if event.key == KEY_RIGHT:
                     dx += 1
 
             if event.type == pygame.KEYUP:
-                if event.key == pygame.K_UP:
+                if event.key == KEY_UP:
                     dy += 1
-                if event.key == pygame.K_DOWN:
+                if event.key == KEY_DOWN:
                     dy += -1
-                if event.key == pygame.K_LEFT:
+                if event.key == KEY_LEFT:
                     dx += 1
-                if event.key == pygame.K_RIGHT:
+                if event.key == KEY_RIGHT:
                     dx += -1
 
         if count % player_speed_shooting == 0:
@@ -281,3 +330,53 @@ def main():
     pygame.mixer.quit()
     con.close()
     terminate()
+
+
+def pause():
+    surface = pygame.Surface(SIZE)
+    surface.set_alpha(100)
+    is_paused = True
+
+    font = pygame.font.Font(None, 40)
+    clock = pygame.time.Clock()
+
+    resume_btn = Button(font, 340, 300, 'Continue')
+    back_to_menu_btn = Button(font, 340, 350, 'Back to menu')
+
+    while is_paused:
+        SCREEN.blit(surface, (0, 0))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                is_paused = False
+                terminate()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return False
+
+        if resume_btn.is_clicked():
+            return False
+
+        if back_to_menu_btn.is_clicked():
+            for player_shot in player_shots_group:
+                player_shot.kill()
+            for enemy_shot in enemy_shots_group:
+                enemy_shot.kill()
+            for player in player_group:
+                player.kill()
+            for enemy in enemy_group:
+                enemy.kill()
+            pygame.time.delay(200)
+            return True
+
+        resume_btn.render(surface)
+        back_to_menu_btn.render(surface)
+
+        pygame.display.flip()
+        clock.tick(60)
+
+
+# Отрисовка текста на экран
+def display_text(surface, text, x, y, font_size=40, color=(255, 255, 255)):
+    font = pygame.font.Font(None, font_size)
+    string = font.render(text, 1, color)
+    surface.blit(string, (x, y))
