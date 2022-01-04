@@ -106,10 +106,15 @@ class InputBox:
             self.curr_color = self.active_color if self.active else self.inactive_color
 
     def draw(self, surface, border_radius=5):
-        pygame.draw.rect(surface, self.curr_color,
-                         (self.x, self.y, self.width, self.height), border_radius=border_radius)
-
-        surface.blit(self.font.render(self.text, 1, (255, 255, 255)), (self.x + 5, self.y))
+        mouse_pos = pygame.mouse.get_pos()
+        if self.x < mouse_pos[0] < self.x + self.width and self.y < mouse_pos[1] < self.y + self.height:
+            pygame.draw.rect(surface, self.active_color,
+                             (self.x, self.y, self.width, self.height), border_radius=border_radius)
+            surface.blit(self.font.render(self.text, 1, (255, 255, 255)), (self.x + 5, self.y))
+        else:
+            pygame.draw.rect(surface, self.curr_color,
+                             (self.x, self.y, self.width, self.height), border_radius=border_radius)
+            surface.blit(self.font.render(self.text, 1, (255, 255, 255)), (self.x + 5, self.y))
 
     def update_text(self, event):
         name_of_key = pygame.key.name(event.key)

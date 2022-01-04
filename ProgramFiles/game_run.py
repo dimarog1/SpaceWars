@@ -2,6 +2,8 @@ import json
 
 import sqlite3
 
+import pygame.transform
+
 from ProgramFiles.consts import *
 from ProgramFiles.enemy_sprites import *
 from ProgramFiles.player_sprites import *
@@ -34,7 +36,6 @@ second_bg = SecondBg()
 
 GAME_TITLE_IMG = pygame.transform.scale(load_image('game_title.png', -1), (300, 200))
 
-
 shoot_sound.set_volume(loud_of_effects)
 boom_sound.set_volume(loud_of_effects)
 fon_sound.set_volume(loud_of_menu_music)
@@ -42,13 +43,23 @@ btn_sound.set_volume(loud_of_menu_music)
 
 
 def menu():
-    # global X
-    # enemy = Enemy()
-    # background_enemies = [EnemyLevelOne((150, 900)), EnemyLevelOne((100, 1000)), EnemyLevelOne((150, 1100)),
-    #                       EnemyLevelOne((100, 1200)), EnemyLevelOne((150, 1300)), EnemyLevelOne((100, 1400))]
-    # 391
-    # 342
-    # 682
+    background_enemies = [EnemyLevelThree(), EnemyLevelThree(), EnemyLevelThree(),
+                          EnemyLevelThree(), EnemyLevelThree(), EnemyLevelThree(),
+                          EnemyLevelThree(), EnemyLevelThree(), EnemyLevelThree(),
+                          EnemyLevelThree(), EnemyLevelThree(), EnemyLevelThree()]
+    background_enemies[0].set_start_pos(150, 900)
+    background_enemies[1].set_start_pos(100, 1000)
+    background_enemies[2].set_start_pos(150, 1100)
+    background_enemies[3].set_start_pos(100, 1200)
+    background_enemies[4].set_start_pos(150, 1300)
+    background_enemies[5].set_start_pos(100, 1400)
+    background_enemies[6].set_start_pos(550, 1600)
+    background_enemies[7].set_start_pos(500, 1700)
+    background_enemies[8].set_start_pos(550, 1800)
+    background_enemies[9].set_start_pos(500, 1900)
+    background_enemies[10].set_start_pos(550, 2000)
+    background_enemies[11].set_start_pos(500, 2100)
+
     pygame.mixer.init()
     font = pygame.font.SysFont('Jokerman', 48)
     clock = pygame.time.Clock()
@@ -59,7 +70,7 @@ def menu():
     shop_btn = Button(font, 350, 310, 'Shop')
     settings_btn = Button(font, 350, 380, 'Settings')
     quit_btn = Button(font, 350, 450, 'Quit')
-
+    img = pygame.transform.scale(load_image('enemy_level_three.png'), (100, 100))
     fon_sound.play(-1)
 
     while running:
@@ -71,8 +82,8 @@ def menu():
         if play_btn.is_clicked():
             fon_sound.stop()
             btn_sound.play()
-            # for enemy in enemy_group:
-            #     enemy.kill()
+            for enemy in enemy_group:
+                enemy.kill()
             main()
 
         if quit_btn.is_clicked():
@@ -87,19 +98,11 @@ def menu():
         bg_group.draw(SCREEN)
         bg_group.update()
 
-        # for enemy in enemy_group:
-        #     enemy.change_pos(0, -2)
-        #     if enemy.rect.y <= -enemy.rect.height:
-        #         # X = random.randint(50, 680)
-        #         enemy.rect.y = 850
-        #         enemy.rect.x += 100
-        #     if enemy.rect.x >= 600:
-        #         enemy.rect.x = 100
-                # print(X)
-            # if enemy.rect.x >= 250 or enemy.rect.x >= 200:
-            #     enemy.rect.x -= 100
-            # else:
-            #     enemy.rect.x -= 100
+        for enemy in enemy_group:
+            enemy.image = pygame.transform.rotate(img, 180)
+            enemy.rect.y += -3
+            if enemy.rect.y <= -enemy.rect.height:
+                enemy.rect.y = 850
 
         enemy_group.draw(SCREEN)
         SCREEN.blit(GAME_TITLE_IMG, (250, 50))
@@ -143,7 +146,7 @@ def start_screen():
                     pygame.mixer.quit()
                     return
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if intro_rect.x < event.pos[0] < intro_rect.x + intro_rect.width\
+                if intro_rect.x < event.pos[0] < intro_rect.x + intro_rect.width \
                         and intro_rect.y < event.pos[1] < intro_rect.height + intro_rect.y:
                     return
             elif event.type == blink_event:
@@ -440,7 +443,8 @@ def pause():
                 player.kill()
             for enemy in enemy_group:
                 enemy.kill()
-            pygame.time.delay(200)
+            for boom in boom_group:
+                boom.kill()
             return True
 
         resume_btn.render(surface)
