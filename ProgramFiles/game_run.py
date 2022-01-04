@@ -1,8 +1,10 @@
-import pygame
+import json
+
 import sqlite3
 
 from ProgramFiles.consts import *
-from ProgramFiles.units_sprites import *
+from ProgramFiles.enemy_sprites import *
+from ProgramFiles.player_sprites import *
 from ProgramFiles.buttons import *
 from itertools import cycle
 from music.sounds import boom_sound, shoot_sound, btn_sound, fon_sound
@@ -40,6 +42,13 @@ btn_sound.set_volume(loud_of_menu_music)
 
 
 def menu():
+    # global X
+    # enemy = Enemy()
+    # background_enemies = [EnemyLevelOne((150, 900)), EnemyLevelOne((100, 1000)), EnemyLevelOne((150, 1100)),
+    #                       EnemyLevelOne((100, 1200)), EnemyLevelOne((150, 1300)), EnemyLevelOne((100, 1400))]
+    # 391
+    # 342
+    # 682
     pygame.mixer.init()
     font = pygame.font.SysFont('Jokerman', 48)
     clock = pygame.time.Clock()
@@ -62,10 +71,13 @@ def menu():
         if play_btn.is_clicked():
             fon_sound.stop()
             btn_sound.play()
-            return main()
+            # for enemy in enemy_group:
+            #     enemy.kill()
+            main()
 
         if quit_btn.is_clicked():
             btn_sound.play()
+            pygame.time.delay(200)
             terminate()
 
         if settings_btn.is_clicked():
@@ -74,6 +86,22 @@ def menu():
 
         bg_group.draw(SCREEN)
         bg_group.update()
+
+        # for enemy in enemy_group:
+        #     enemy.change_pos(0, -2)
+        #     if enemy.rect.y <= -enemy.rect.height:
+        #         # X = random.randint(50, 680)
+        #         enemy.rect.y = 850
+        #         enemy.rect.x += 100
+        #     if enemy.rect.x >= 600:
+        #         enemy.rect.x = 100
+                # print(X)
+            # if enemy.rect.x >= 250 or enemy.rect.x >= 200:
+            #     enemy.rect.x -= 100
+            # else:
+            #     enemy.rect.x -= 100
+
+        enemy_group.draw(SCREEN)
         SCREEN.blit(GAME_TITLE_IMG, (250, 50))
 
         play_btn.render(SCREEN)
@@ -225,18 +253,51 @@ def settings():
         pygame.display.flip()
 
 
+def start_enemy_wave(wave):
+    enemies_id = {
+        1: EnemyLevelOne,
+        2: EnemyLevelTwo,
+        3: EnemyLevelThree,
+        4: EnemyLevelFour,
+    }
+    ships_territory = 1 / len(wave)
+    k = 0
+    enemies = pygame.sprite.Group()
+    L = 100
+    R = 700
+    for enemy_id in wave:
+        enemy = enemies_id[enemy_id]()
+        territory = (R - L) * ships_territory
+        x = L + territory * k + (territory - enemy.width) // 2
+        y = 50
+        print(x, y)
+        enemy.set_start_pos(x, y)
+        print(enemy)
+        print('---')
+        enemies.add(enemy)
+        k += 1
+    return enemies
+
+
 def main():
     pygame.display.set_caption(GAME_TITLE)
     clock = pygame.time.Clock()
 
+    # Загрузка уровня
+    waves = list()
+    with open(r'.\levels\level_one.json') as level:
+        level = json.loads(level.read())
+    for wave in level:
+        waves.append(level[wave])
+
     player = Player()
-    enemy1 = EnemyLevelOne((100, 50))
+    # enemy1 = EnemyLevelFour((100, 50))
     dx = dy = 0
     count = 1
 
     # Скорость выстрела (чем меньше число, тем больше скорость)
     player_speed_shooting = 15
-    enemy_speed_shooting = 60
+    enemy_speed_shooting = 90
 
     # Выпуск корабля игрока
     while player.starting_ship():
@@ -251,9 +312,22 @@ def main():
         enemy_group.draw(SCREEN)
         pygame.display.flip()
 
+    print(waves)
+    enemies_of_wave = start_enemy_wave(waves[0])
+    del waves[0]
+    for e in enemies_of_wave:
+        print(e)
+
     running = True
 
     while running:
+
+        if len(enemies_of_wave) == 0:
+            if len(waves) != 0:
+                enemies_of_wave = start_enemy_wave(waves[0])
+                del waves[0]
+            else:
+                running = False
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -292,7 +366,7 @@ def main():
         if count % enemy_speed_shooting == 0:
             for enemy in enemy_group:
                 if enemy.alive():
-                    enemy_shot = EnemyProjectileLevelOne(enemy1)
+                    enemy_shot = EnemyProjectile(enemy)
                     shoot_sound.play()
 
         bg_group.draw(SCREEN)
@@ -314,13 +388,14 @@ def main():
             player.change_pos(dx, dy)
 
         for enemy in enemy_group:
-            enemy.change_pos(1, 0)
+            enemy.change_pos(0, 0)
 
         clock.tick(FPS)
 
         # Отрисовка
         player_group.draw(SCREEN)
         enemy_group.draw(SCREEN)
+        enemies_of_wave.draw(SCREEN)
         player_shots_group.draw(SCREEN)
         enemy_shots_group.draw(SCREEN)
         boom_group.draw(SCREEN)
