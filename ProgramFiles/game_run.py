@@ -1,8 +1,11 @@
+import json
+
 import pygame
 import sqlite3
 
 from ProgramFiles.consts import *
-from ProgramFiles.units_sprites import *
+from ProgramFiles.enemy_sprites import *
+from ProgramFiles.player_sprites import *
 from ProgramFiles.buttons import Button, SpinBox
 from itertools import cycle
 from music.sounds import boom_sound, shoot_sound, btn_sound, fon_sound
@@ -180,18 +183,51 @@ def settings(menu_music, effects_music):
         pygame.display.flip()
 
 
+def start_enemy_wave(wave):
+    enemies_id = {
+        1: EnemyLevelOne,
+        2: EnemyLevelTwo,
+        3: EnemyLevelThree,
+        4: EnemyLevelFour,
+    }
+    ships_territory = 1 / len(wave)
+    k = 0
+    enemies = pygame.sprite.Group()
+    L = 100
+    R = 700
+    for enemy_id in wave:
+        enemy = enemies_id[enemy_id]()
+        territory = (R - L) * ships_territory
+        x = L + territory * k + (territory - enemy.width) // 2
+        y = 50
+        print(x, y)
+        enemy.set_start_pos(x, y)
+        print(enemy)
+        print('---')
+        enemies.add(enemy)
+        k += 1
+    return enemies
+
+
 def main():
     pygame.display.set_caption(GAME_TITLE)
     clock = pygame.time.Clock()
 
+    # Загрузка уровня
+    waves = list()
+    with open(r'.\levels\level_one.json') as level:
+        level = json.loads(level.read())
+    for wave in level:
+        waves.append(level[wave])
+
     player = Player()
-    enemy1 = EnemyLevelOne((100, 50))
+    # enemy1 = EnemyLevelFour((100, 50))
     dx = dy = 0
     count = 1
 
     # Скорость выстрела (чем меньше число, тем больше скорость)
     player_speed_shooting = 15
-    enemy_speed_shooting = 60
+    enemy_speed_shooting = 90
 
     # Выпуск корабля игрока
     while player.starting_ship():
@@ -206,9 +242,22 @@ def main():
         enemy_group.draw(SCREEN)
         pygame.display.flip()
 
+    print(waves)
+    enemies_of_wave = start_enemy_wave(waves[0])
+    del waves[0]
+    for e in enemies_of_wave:
+        print(e)
+
     running = True
 
     while running:
+
+        if len(enemies_of_wave) == 0:
+            if len(waves) != 0:
+                enemies_of_wave = start_enemy_wave(waves[0])
+                del waves[0]
+            else:
+                running = False
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -243,7 +292,7 @@ def main():
         if count % enemy_speed_shooting == 0:
             for enemy in enemy_group:
                 if enemy.alive():
-                    enemy_shot = EnemyProjectileLevelOne(enemy1)
+                    enemy_shot = EnemyProjectile(enemy)
                     shoot_sound.play()
 
         bg_group.draw(SCREEN)
@@ -265,13 +314,14 @@ def main():
             player.change_pos(dx, dy)
 
         for enemy in enemy_group:
-            enemy.change_pos(1, 0)
+            enemy.change_pos(0, 0)
 
         clock.tick(FPS)
 
         # Отрисовка
         player_group.draw(SCREEN)
         enemy_group.draw(SCREEN)
+        enemies_of_wave.draw(SCREEN)
         player_shots_group.draw(SCREEN)
         enemy_shots_group.draw(SCREEN)
         boom_group.draw(SCREEN)
