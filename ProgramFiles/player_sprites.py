@@ -3,8 +3,8 @@ from ProgramFiles.base_classes import *
 
 # Игрок
 class Player(Ship, pygame.sprite.Sprite):
-    def __init__(self, position=(0, 0)):
-        Ship.__init__(self, position)
+    def __init__(self, screen, position=(0, 0)):
+        Ship.__init__(self, screen, position)
         pygame.sprite.Sprite.__init__(self, player_group)
         self.image = pygame.transform.scale(load_image('player.png'), (100, 100))
         self.mask = pygame.mask.from_surface(self.image)
@@ -27,6 +27,7 @@ class PlayerProjectileLevelOne(Projectile, pygame.sprite.Sprite):
         # Столкновения с кораблём
         for enemy in enemy_group:
             if pygame.sprite.collide_mask(self, enemy):
+                enemy.activate_hp_bar()
                 enemy.hp -= 1
                 self.kill()
                 return

@@ -16,6 +16,8 @@ all_shots_group = pygame.sprite.Group()
 player_shots_group = pygame.sprite.Group()
 enemy_shots_group = pygame.sprite.Group()
 
+hp_bar_group = pygame.sprite.Group()
+
 boom_group = pygame.sprite.Group()
 
 bg_group = pygame.sprite.Group()
@@ -38,8 +40,9 @@ def load_image(name, colorkey=None):
 
 
 class Ship(pygame.sprite.Sprite):
-    def __init__(self, position):
+    def __init__(self, screen, position):
         super().__init__(all_sprites)
+        self.screen = screen
         self.image = pygame.transform.scale(load_image('player.png'), (100, 100))
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()

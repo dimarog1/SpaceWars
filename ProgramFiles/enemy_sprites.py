@@ -6,26 +6,46 @@ from ProgramFiles.base_classes import *
 # --- Враги ---
 
 class Enemy(Ship, pygame.sprite.Sprite):
-    def __init__(self, position=(0, -500)):
-        Ship.__init__(self, position)
+    def __init__(self, screen, position=(0, -500)):
+        Ship.__init__(self, screen, position)
         pygame.sprite.Sprite.__init__(self, enemy_group)
+        self.speed_of_ship = 2
+        self.border = 20
+        self.hp_bar = HpBar(self, self.screen)
+        self.__show_hp_bar = False
 
     def set_start_pos(self, x, y):
         self.rect = self.image.get_rect().move(x, y)
 
+    def check_is_ship_on_screen(self):
+        if self.border <= self.rect.x + self.speed_of_ship <= WIDTH - self.width - self.border:
+            return True
+        return False
+
+    def activate_hp_bar(self):
+        self.__show_hp_bar = True
+
+    def draw_hp_bar(self):
+        if self.__show_hp_bar:
+            self.hp_bar.draw()
+
+    def update(self):
+        if self.border <= self.rect.x + self.speed_of_ship <= WIDTH - self.width - self.border:
+            self.rect.x += self.speed_of_ship
+
 
 # Враг первого уровня
 class EnemyLevelOne(Enemy):
-    def __init__(self):
-        Enemy.__init__(self)
+    def __init__(self, screen):
+        Enemy.__init__(self, screen)
         self.image = pygame.transform.scale(load_image('enemy_level_one.png'), (70, 70))
         self.projectile_image = pygame.transform.scale(load_image('shot.png'), (17, 27))
         self.projectile_image = pygame.transform.rotate(self.projectile_image, 180)
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.speed_of_ship = 3
         self.hp = 5
+        self.hp_bar = HpBar(self, self.screen)
 
     # def change_pos(self, dx, dy):
     #     if 50 <= self.rect.x + dx * self.speed_of_ship <= WIDTH - self.width - 50:
@@ -39,73 +59,44 @@ class EnemyLevelOne(Enemy):
 
 # Враг второго уровня
 class EnemyLevelTwo(Enemy):
-    def __init__(self):
-        Enemy.__init__(self)
+    def __init__(self, screen):
+        Enemy.__init__(self, screen)
         self.image = pygame.transform.scale(load_image('enemy_level_two.png'), (90, 90))
         self.projectile_image = pygame.transform.scale(load_image('enemy_shot_level_two.png'), (40, 30))
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.speed_of_ship = 3
         self.hp = 10
-
-    def change_pos(self, dx, dy):
-        if 50 <= self.rect.x + dx * self.speed_of_ship <= WIDTH - self.width - 50:
-            self.rect = self.rect.move(
-                self.speed_of_ship * dx,
-                self.speed_of_ship * dy
-            )
-        else:
-            self.speed_of_ship *= -1
+        self.hp_bar = HpBar(self, self.screen)
 
 
 # Враг третьего уровня
 class EnemyLevelThree(Enemy):
-    def __init__(self):
-        Enemy.__init__(self)
+    def __init__(self, screen):
+        Enemy.__init__(self, screen)
         self.image = pygame.transform.scale(load_image('enemy_level_three.png'), (110, 110))
         self.projectile_image = pygame.transform.scale(load_image('enemy_shot_level_three.png'), (70, 40))
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.speed_of_ship = 3
         self.hp = 20
-
-    def change_pos(self, dx, dy):
-        if 50 <= self.rect.x + dx * self.speed_of_ship <= WIDTH - self.width - 50:
-            self.rect = self.rect.move(
-                self.speed_of_ship * dx,
-                self.speed_of_ship * dy
-            )
-        else:
-            self.speed_of_ship *= -1
+        self.hp_bar = HpBar(self, self.screen)
 
 
 # Враг четвёртого уровня
 class EnemyLevelFour(Enemy):
-    def __init__(self):
-        Enemy.__init__(self)
+    def __init__(self, screen):
+        Enemy.__init__(self, screen)
         self.image = pygame.transform.scale(load_image('enemy_level_four.png'), (130, 130))
         self.projectile_image = pygame.transform.scale(load_image('enemy_shot_level_four.png'), (110, 70))
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.speed_of_ship = 3
         self.hp = 30
-
-    def change_pos(self, dx, dy):
-        if 50 <= self.rect.x + dx * self.speed_of_ship <= WIDTH - self.width - 50:
-            self.rect = self.rect.move(
-                self.speed_of_ship * dx,
-                self.speed_of_ship * dy
-            )
-        else:
-            self.speed_of_ship *= -1
+        self.hp_bar = HpBar(self, self.screen)
 
 
 # --- Выстрел ---
-
-# Выстрел врага
 class EnemyProjectile(Projectile, pygame.sprite.Sprite):
     def __init__(self, parent_ship):
         Projectile.__init__(self, parent_ship)
@@ -133,3 +124,27 @@ class EnemyProjectile(Projectile, pygame.sprite.Sprite):
             self.rect.y += self.speed_of_shot
         else:
             self.kill()
+
+
+class HpBar:
+    def __init__(self, parent, screen):
+        self.parent = parent
+        self.screen = screen
+        self.max_hp = self.parent.hp
+        self.color = pygame.Color('green')
+        self.x1 = self.parent.rect.x
+        self.y1 = self.parent.rect.y + self.parent.height + 5
+        self.w = self.parent.width
+        self.h = 10
+        self.parts = self.parent.width / self.max_hp
+
+    def draw(self):
+        hp_percent = self.parent.hp / self.max_hp
+        if hp_percent <= 0.2:
+            self.color = pygame.Color('red')
+        elif hp_percent <= 0.6:
+            self.color = pygame.Color('orange')
+        self.x1 = self.parent.rect.x
+        self.y1 = self.parent.rect.y + self.parent.height + 5
+        pygame.draw.rect(self.screen, self.color, (self.x1, self.y1,
+                                                   self.w * (self.parent.hp / self.max_hp), self.h))
