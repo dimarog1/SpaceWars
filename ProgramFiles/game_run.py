@@ -1,15 +1,10 @@
 import json
-import random
-
 import sqlite3
+from itertools import cycle
 
-import keyboard as keyboard
-
-from ProgramFiles.consts import *
+from ProgramFiles.buttons import *
 from ProgramFiles.enemy_sprites import *
 from ProgramFiles.player_sprites import *
-from ProgramFiles.buttons import *
-from itertools import cycle
 from music.sounds import boom_sound, shoot_sound, btn_sound, fon_sound
 
 
@@ -56,7 +51,6 @@ first_bg = FirstBg()
 second_bg = SecondBg()
 
 GAME_TITLE_IMG = pygame.transform.scale(load_image('game_title.png', -1), (300, 200))
-
 
 shoot_sound.set_volume(loud_of_effects)
 boom_sound.set_volume(loud_of_effects)
@@ -160,11 +154,11 @@ def menu():
         #         enemy.rect.x += 100
         #     if enemy.rect.x >= 600:
         #         enemy.rect.x = 100
-                # print(X)
-            # if enemy.rect.x >= 250 or enemy.rect.x >= 200:
-            #     enemy.rect.x -= 100
-            # else:
-            #     enemy.rect.x -= 100
+        # print(X)
+        # if enemy.rect.x >= 250 or enemy.rect.x >= 200:
+        #     enemy.rect.x -= 100
+        # else:
+        #     enemy.rect.x -= 100
 
         enemy_group.draw(SCREEN)
         SCREEN.blit(GAME_TITLE_IMG, (250, 50))
@@ -208,8 +202,8 @@ def start_screen():
                     pygame.mixer.quit()
                     menu()
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if intro_rect.x < event.pos[0] < intro_rect.x + intro_rect.width\
-                        and intro_rect.y < event.pos[1] < intro_rect.height + intro_rect.y:
+                if intro_rect.x < event.pos[0] < intro_rect.x + intro_rect.width \
+                    and intro_rect.y < event.pos[1] < intro_rect.height + intro_rect.y:
                     menu()
             elif event.type == blink_event:
                 blink_surface = next(blink_surfaces)
@@ -352,14 +346,16 @@ def start_enemy_wave(wave, count):
     enemies = pygame.sprite.Group()
     L = 100
     R = 700
-    for enemy_id in wave:
-        enemy = enemies_id[enemy_id](SCREEN)
+    for enemy_info in wave:
+        enemy = enemies_id[enemy_info](SCREEN)
         territory = (R - L) * ships_territory
         x = L + territory * k + (territory - enemy.width) // 2
         y = -150
         enemy.set_start_pos(x, y)
         enemies.add(enemy)
+        enemy.shooting = bool(k % 2)
         k += 1
+
     tmp = 0
     while tmp < 200:
         for event in pygame.event.get():
@@ -377,12 +373,14 @@ def start_enemy_wave(wave, count):
         bg_group.update()
         player_shots_group.update()
         enemy_shots_group.update()
+        shield_group.update()
+        gains_group.update()
         boom_group.update()
 
         # Удаление кораблей, если они уничтожены и проверка на их столкновение
-        for enemy in enemy_group:
-            enemy.check_alive()
-            if pygame.sprite.collide_mask(player, enemy):
+        for enemy_info in enemy_group:
+            enemy_info.check_alive()
+            if pygame.sprite.collide_mask(player, enemy_info):
                 player.hp -= 1
         for pl in player_group:
             pl.check_alive()
@@ -394,8 +392,11 @@ def start_enemy_wave(wave, count):
         enemy_shots_group.draw(SCREEN)
         player_group.draw(SCREEN)
         enemy_group.draw(SCREEN)
+        shield_group.draw(SCREEN)
         boom_group.draw(SCREEN)
-        display_text(SCREEN, count, WIDTH // 2 - len(count) * 22, HEIGHT // 2 - 100, font_size=100, color=pygame.Color('red'))
+        gains_group.draw(SCREEN)
+        display_text(SCREEN, count, WIDTH // 2 - len(count) * 22,
+                     HEIGHT // 2 - 100, font_size=100, color=pygame.Color('red'))
         pygame.display.flip()
     return enemies
 
@@ -417,10 +418,6 @@ def main():
 
     # Выпуск корабля игрока
     start_player_ship()
-
-    # Скорость выстрела (чем меньше число, тем больше скорость)
-    player_speed_shooting = 15
-    enemy_speed_shooting = 140
 
     name_of_wave = select_name_of_wave(level, waves[0])
     enemies_of_wave = start_enemy_wave(waves[0], name_of_wave)
@@ -445,16 +442,19 @@ def main():
             keyboard_check(event)
         move_enemies(enemies_of_wave)
 
-        if count % player_speed_shooting == 0:
-            # Вылет выстрела
-            if player.alive():
-                player_shot = PlayerProjectileLevelOne(player)
-                shoot_sound.play()
+        # Вылет выстрела
+        if player.alive() and count % player.speed_of_shooting == 0:
+            player_shot = player.projectile(player)
+            shoot_sound.play()
 
         for enemy in enemy_group:
-            if enemy.alive() and random.randint(0, enemy_speed_shooting) == 1:
-                enemy_shot = EnemyProjectile(enemy)
-                shoot_sound.play()
+            if count % enemy.speed_of_shooting == 0:
+                if enemy.alive() and enemy.shooting:
+                    enemy_shot = EnemyProjectile(enemy)
+                    enemy.shooting = False
+                    shoot_sound.play()
+                elif not enemy.shooting:
+                    enemy.shooting = True
 
         bg_group.draw(SCREEN)
         bg_group.update()
@@ -473,9 +473,7 @@ def main():
 
         if player.alive():
             player.change_pos(dx, dy)
-
-        for enemy in enemy_group:
-            enemy.change_pos(0, 0)
+        shield_group.update()
 
         clock.tick(FPS)
 
@@ -484,8 +482,11 @@ def main():
         enemies_of_wave.draw(SCREEN)
         for unit in enemies_of_wave:
             unit.draw_hp_bar()
+        gains_group.draw(SCREEN)
         player_shots_group.draw(SCREEN)
         enemy_shots_group.draw(SCREEN)
+        shield_group.draw(SCREEN)
+        gains_group.update()
         boom_group.draw(SCREEN)
         pygame.display.flip()
         count += 1

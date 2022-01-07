@@ -1,6 +1,9 @@
+import random
+
 import pygame.rect
 
 from ProgramFiles.base_classes import *
+from ProgramFiles.player_sprites import ShotSpeedGain, ShotRangeGain, ShieldGain
 
 
 # --- Враги ---
@@ -13,6 +16,9 @@ class Enemy(Ship, pygame.sprite.Sprite):
         self.border = 20
         self.hp_bar = HpBar(self, self.screen)
         self.__show_hp_bar = False
+        self.shooting = False
+        self.speed_of_shooting = 60
+        self.gains = (ShotSpeedGain, ShotRangeGain, ShieldGain)
 
     def set_start_pos(self, x, y):
         self.rect = self.image.get_rect().move(x, y)
@@ -29,6 +35,24 @@ class Enemy(Ship, pygame.sprite.Sprite):
         if self.__show_hp_bar:
             self.hp_bar.draw()
 
+    def check_alive(self):
+        # Проверяем количство hp
+        if self.hp <= 0:
+            self.spawn_gain()
+            self.kill()
+            boom = BoomSprite(self)
+            boom_sound.play()
+
+    def spawn_gain(self):
+        do_spawn_gain = random.choices((True, False), weights=[40, 60])[0]
+        flag = True
+        if do_spawn_gain:
+            while flag:
+                gain = random.choice(self.gains)(self)
+                if len(shield_group) >= 1 and isinstance(gain, ShieldGain):
+                    continue
+                flag = False
+
     def update(self):
         if self.border <= self.rect.x + self.speed_of_ship <= WIDTH - self.width - self.border:
             self.rect.x += self.speed_of_ship
@@ -44,7 +68,7 @@ class EnemyLevelOne(Enemy):
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.hp = 5
+        self.hp = 50
         self.hp_bar = HpBar(self, self.screen)
 
     # def change_pos(self, dx, dy):
@@ -62,11 +86,11 @@ class EnemyLevelTwo(Enemy):
     def __init__(self, screen):
         Enemy.__init__(self, screen)
         self.image = pygame.transform.scale(load_image('enemy_level_two.png'), (90, 90))
-        self.projectile_image = pygame.transform.scale(load_image('enemy_shot_level_two.png'), (40, 30))
+        self.projectile_image = pygame.transform.scale(load_image('shot_level_two.png'), (40, 30))
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.hp = 10
+        self.hp = 100
         self.hp_bar = HpBar(self, self.screen)
 
 
@@ -75,11 +99,11 @@ class EnemyLevelThree(Enemy):
     def __init__(self, screen):
         Enemy.__init__(self, screen)
         self.image = pygame.transform.scale(load_image('enemy_level_three.png'), (110, 110))
-        self.projectile_image = pygame.transform.scale(load_image('enemy_shot_level_three.png'), (70, 40))
+        self.projectile_image = pygame.transform.scale(load_image('shot_level_three.png'), (70, 40))
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.hp = 20
+        self.hp = 200
         self.hp_bar = HpBar(self, self.screen)
 
 
@@ -88,11 +112,11 @@ class EnemyLevelFour(Enemy):
     def __init__(self, screen):
         Enemy.__init__(self, screen)
         self.image = pygame.transform.scale(load_image('enemy_level_four.png'), (130, 130))
-        self.projectile_image = pygame.transform.scale(load_image('enemy_shot_level_four.png'), (110, 70))
+        self.projectile_image = pygame.transform.scale(load_image('shot_level_four.png'), (110, 70))
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.hp = 30
+        self.hp = 300
         self.hp_bar = HpBar(self, self.screen)
 
 
@@ -113,6 +137,12 @@ class EnemyProjectile(Projectile, pygame.sprite.Sprite):
 
     def update(self):
         # Столкновения с кораблём
+        for shield in shield_group:
+            if pygame.sprite.collide_mask(self, shield):
+                shield.hp -= 1
+                self.kill()
+                return
+
         for player in player_group:
             if pygame.sprite.collide_mask(self, player):
                 player.hp -= 1
