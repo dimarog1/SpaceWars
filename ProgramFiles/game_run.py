@@ -22,6 +22,9 @@ def select_name_of_wave(level, wave):
 
 
 def move_enemies(enemies):
+    for enemy in enemies:
+        if isinstance(enemy, Boss):
+            return
     on_screen = True
     for enemy in enemies:
         if not enemy.check_is_ship_on_screen():
@@ -340,6 +343,7 @@ def start_enemy_wave(wave, count):
         2: EnemyLevelTwo,
         3: EnemyLevelThree,
         4: EnemyLevelFour,
+        "boss": Boss
     }
     ships_territory = 1 / len(wave)
     k = 0
@@ -448,9 +452,15 @@ def main():
             shoot_sound.play()
 
         for enemy in enemy_group:
+            if isinstance(enemy, Boss):
+                if count % enemy.attack_intervals == 0:
+                    print(1)
+                    enemy.choose_attack()
+                enemy.attack(count)
+                break
             if count % enemy.speed_of_shooting == 0:
                 if enemy.alive() and enemy.shooting:
-                    enemy_shot = EnemyProjectile(enemy)
+                    enemy.shoot()
                     enemy.shooting = False
                     shoot_sound.play()
                 elif not enemy.shooting:

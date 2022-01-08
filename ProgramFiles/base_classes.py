@@ -98,6 +98,10 @@ class Projectile(pygame.sprite.Sprite):
         )
         self.speed_of_shot = 10
 
+    def set_angle_of_projectile(self, angle):
+        self.image = pygame.transform.rotate(self.image, 30)
+        self.mask = pygame.mask.from_surface(self.image)
+
 
 # Усиление
 class Gain(pygame.sprite.Sprite):

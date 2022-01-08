@@ -17,7 +17,9 @@ class Enemy(Ship, pygame.sprite.Sprite):
         self.hp_bar = HpBar(self, self.screen)
         self.__show_hp_bar = False
         self.shooting = False
+        self.projectile = EnemyProjectileLevelOne
         self.speed_of_shooting = 60
+        self.chance = 40
         self.gains = (ShotSpeedGain, ShotRangeGain, ShieldGain)
 
     def set_start_pos(self, x, y):
@@ -44,7 +46,7 @@ class Enemy(Ship, pygame.sprite.Sprite):
             boom_sound.play()
 
     def spawn_gain(self):
-        do_spawn_gain = random.choices((True, False), weights=[40, 60])[0]
+        do_spawn_gain = random.choices((True, False), weights=[self.chance, 100 - self.chance])[0]
         flag = True
         if do_spawn_gain:
             while flag:
@@ -52,6 +54,9 @@ class Enemy(Ship, pygame.sprite.Sprite):
                 if len(shield_group) >= 1 and isinstance(gain, ShieldGain):
                     continue
                 flag = False
+
+    def shoot(self):
+        enemy_shot = self.projectile(self)
 
     def update(self):
         if self.border <= self.rect.x + self.speed_of_ship <= WIDTH - self.width - self.border:
@@ -63,12 +68,12 @@ class EnemyLevelOne(Enemy):
     def __init__(self, screen):
         Enemy.__init__(self, screen)
         self.image = pygame.transform.scale(load_image('enemy_level_one.png'), (70, 70))
-        self.projectile_image = pygame.transform.scale(load_image('shot.png'), (17, 27))
-        self.projectile_image = pygame.transform.rotate(self.projectile_image, 180)
+        self.projectile = EnemyProjectileLevelOne
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.hp = 50
+        self.chance = 40
         self.hp_bar = HpBar(self, self.screen)
 
     # def change_pos(self, dx, dy):
@@ -86,11 +91,12 @@ class EnemyLevelTwo(Enemy):
     def __init__(self, screen):
         Enemy.__init__(self, screen)
         self.image = pygame.transform.scale(load_image('enemy_level_two.png'), (90, 90))
-        self.projectile_image = pygame.transform.scale(load_image('shot_level_two.png'), (40, 30))
+        self.projectile = EnemyProjectileLevelTwo
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.hp = 100
+        self.chance = 50
         self.hp_bar = HpBar(self, self.screen)
 
 
@@ -99,11 +105,12 @@ class EnemyLevelThree(Enemy):
     def __init__(self, screen):
         Enemy.__init__(self, screen)
         self.image = pygame.transform.scale(load_image('enemy_level_three.png'), (110, 110))
-        self.projectile_image = pygame.transform.scale(load_image('shot_level_three.png'), (70, 40))
+        self.projectile = EnemyProjectileLevelThree
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.hp = 200
+        self.chance = 60
         self.hp_bar = HpBar(self, self.screen)
 
 
@@ -112,12 +119,108 @@ class EnemyLevelFour(Enemy):
     def __init__(self, screen):
         Enemy.__init__(self, screen)
         self.image = pygame.transform.scale(load_image('enemy_level_four.png'), (130, 130))
-        self.projectile_image = pygame.transform.scale(load_image('shot_level_four.png'), (110, 70))
+        self.projectile = EnemyProjectileLevelFour
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.hp = 300
+        self.chance = 80
         self.hp_bar = HpBar(self, self.screen)
+
+
+# Босс
+class Boss(Enemy):
+    def __init__(self, screen):
+        Enemy.__init__(self, screen)
+        self.image = pygame.transform.scale(load_image('boss.png'), (130, 170))
+        self.projectile_image = pygame.transform.scale(load_image('shot_level_four.png'), (110, 70))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.hp = 10000
+        self.speed_of_ship = 3
+        self.hp_bar = HpBar(self, self.screen)
+        self.attack_intervals = 300
+        # self.attacks = [self.first_attack, self.second_attack, self.third_attack]
+        self.attacks = [self.first_attack, self.second_attack]
+        self.attack_type = -1
+        self.projectile = None
+        self.prev_attack = None
+
+        # Пераметры для первой атаки
+        self.attack_points = []
+        self.point_to_move = 0
+        self.projectiles_types = (EnemyProjectileLevelThree, EnemyProjectileLevelFour)
+
+        # Пераметры для второй атаки
+        self.attack_duration = 150
+        self.shoots_interval = 10
+        self.projectile_second_attack = EnemyProjectileLevelOne
+
+    def choose_attack(self):
+        self.attack_points = [(random.randint(50, 650), random.randint(10, 200)), 0, 0]
+        for ind in range(1, 3):
+            flag = True
+            while flag:
+                x1, y1 = random.randint(50, 650), random.randint(10, 200)
+                x2, y2 = self.attack_points[ind - 1]
+                distance = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
+                if distance >= 200:
+                    print(x1, y1)
+                    print(x2, y2)
+                    print(distance)
+                    self.attack_points.insert(ind, (x1, y1))
+                    flag = False
+        flag = True
+        self.attack_type = random.randint(1, 2)
+        while flag:
+            if self.attack_type == self.prev_attack:
+                self.attack_type = random.randint(1, 2)
+            else:
+                flag = False
+        self.prev_attack = self.attack_type
+
+    def attack(self, count):
+        if self.attack_type != -1:
+            self.attacks[self.attack_type - 1](count)
+
+    def first_attack(self, count=0):
+        if self.point_to_move >= 3:
+            self.attack_type = -1
+            self.point_to_move = 0
+            return
+        point = self.attack_points[self.point_to_move]
+        moves = ((0, self.speed_of_ship), (self.speed_of_ship, 0), (0, -self.speed_of_ship),
+                 (-self.speed_of_ship, 0), (self.speed_of_ship, self.speed_of_ship),
+                 (-self.speed_of_ship, -self.speed_of_ship), (-self.speed_of_ship, self.speed_of_ship),
+                 (self.speed_of_ship, -self.speed_of_ship))
+        results = []
+        for move in moves:
+            distance = ((point[0] - (self.rect.x + move[0])) ** 2
+                        + (point[1] - (self.rect.y + move[1])) ** 2) ** 0.5
+            results.append((move, distance))
+        move, distance = min(results, key=lambda elem: elem[1])
+        if (self.rect.x != point[0] and self.rect.y != point[1]) and distance > self.speed_of_ship:
+            self.rect.x += move[0]
+            self.rect.y += move[1]
+        else:
+            self.projectile = random.choice(self.projectiles_types)
+            self.shoot()
+            self.point_to_move += 1
+
+    def second_attack(self, count):
+        if self.attack_duration <= 0:
+            self.attack_type = -1
+            self.attack_duration = 200
+            return
+        if count % self.shoots_interval == 0:
+            angles = (125, 165, 195, 235)
+            for angle in angles:
+                projectile = BossProjectileSecondAttack(self, angle)
+        self.attack_duration -= 1
+
+    def third_attack(self, count=0):
+        pass
 
 
 # --- Выстрел ---
@@ -125,7 +228,7 @@ class EnemyProjectile(Projectile, pygame.sprite.Sprite):
     def __init__(self, parent_ship):
         Projectile.__init__(self, parent_ship)
         pygame.sprite.Sprite.__init__(self, enemy_shots_group)
-        self.image = parent_ship.projectile_image
+        self.image = pygame.transform.scale(load_image('shot.png'), (17, 27))
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
@@ -134,6 +237,12 @@ class EnemyProjectile(Projectile, pygame.sprite.Sprite):
             self.parent_ship.rect.y + self.parent_ship.height
         )
         self.speed_of_shot = 6
+
+    def change_pos(self):
+        if self.rect.y + self.speed_of_shot <= HEIGHT + self.height:
+            self.rect.y += self.speed_of_shot
+        else:
+            self.kill()
 
     def update(self):
         # Столкновения с кораблём
@@ -150,8 +259,88 @@ class EnemyProjectile(Projectile, pygame.sprite.Sprite):
                 return
 
         # Перемщение снаряда
-        if self.rect.y + self.speed_of_shot <= HEIGHT + self.height:
-            self.rect.y += self.speed_of_shot
+        self.change_pos()
+
+
+class EnemyProjectileLevelOne(EnemyProjectile):
+    def __init__(self, parent_ship):
+        EnemyProjectile.__init__(self, parent_ship)
+        self.image = pygame.transform.scale(load_image('shot.png'), (17, 27))
+        self.image = pygame.transform.rotate(self.image, 180)
+        self.mask = pygame.mask.from_surface(self.image)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.rect = self.image.get_rect().move(
+            self.parent_ship.rect.x + self.parent_ship.width // 2 - self.width // 2,
+            self.parent_ship.rect.y + self.parent_ship.height
+        )
+
+
+class EnemyProjectileLevelTwo(EnemyProjectile):
+    def __init__(self, parent_ship):
+        EnemyProjectile.__init__(self, parent_ship)
+        self.image = pygame.transform.scale(load_image('shot_level_two.png'), (40, 30))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.rect = self.image.get_rect().move(
+            self.parent_ship.rect.x + self.parent_ship.width // 2 - self.width // 2,
+            self.parent_ship.rect.y + self.parent_ship.height
+        )
+
+
+class EnemyProjectileLevelThree(EnemyProjectile):
+    def __init__(self, parent_ship):
+        EnemyProjectile.__init__(self, parent_ship)
+        self.image = pygame.transform.scale(load_image('shot_level_three.png'), (70, 40))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.rect = self.image.get_rect().move(
+            self.parent_ship.rect.x + self.parent_ship.width // 2 - self.width // 2,
+            self.parent_ship.rect.y + self.parent_ship.height
+        )
+
+
+class EnemyProjectileLevelFour(EnemyProjectile):
+    def __init__(self, parent_ship):
+        EnemyProjectile.__init__(self, parent_ship)
+        self.image = pygame.transform.scale(load_image('shot_level_four.png'), (110, 70))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.rect = self.image.get_rect().move(
+            self.parent_ship.rect.x + self.parent_ship.width // 2 - self.width // 2,
+            self.parent_ship.rect.y + self.parent_ship.height
+        )
+
+
+class BossProjectileSecondAttack(EnemyProjectileLevelOne):
+    def __init__(self, parent_ship, angle):
+        EnemyProjectileLevelOne.__init__(self, parent_ship)
+        self.angle = angle
+        self.image = pygame.transform.rotate(self.image, 180)
+        self.image = pygame.transform.rotate(self.image, self.angle)
+        self.mask = pygame.mask.from_surface(self.image)
+        self.speed_of_shot_y = 10
+        if self.angle == 125:
+            self.speed_of_shot_x = -10
+            self.speed_of_shot_y = -0.8 * self.speed_of_shot_x
+        elif self.angle == 165:
+            self.speed_of_shot_x = -5
+            self.speed_of_shot_y = -3 * self.speed_of_shot_x
+        elif self.angle == 195:
+            self.speed_of_shot_x = 5
+            self.speed_of_shot_y = 3 * self.speed_of_shot_x
+        elif self.angle == 235:
+            self.speed_of_shot_x = 10
+            self.speed_of_shot_y = 0.8 * self.speed_of_shot_x
+
+    def change_pos(self):
+        if self.rect.y + self.speed_of_shot <= HEIGHT + self.height \
+                and 0 <= self.rect.x + self.speed_of_shot <= WIDTH + self.width:
+            self.rect.x += self.speed_of_shot_x
+            self.rect.y += self.speed_of_shot_y
         else:
             self.kill()
 

@@ -9,6 +9,7 @@ class Player(Ship, pygame.sprite.Sprite):
         self.image = pygame.transform.scale(load_image('player.png'), (100, 100))
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(WIDTH // 2 - self.width // 2, HEIGHT + 10)
+        self.hp = 100000
         self.speed_of_shooting = 30
         self.projectiles = (PlayerProjectileLevelOne, PlayerProjectileLevelTwo,
                             PlayerProjectileLevelThree, PlayerProjectileLevelFour)
@@ -85,6 +86,7 @@ class Shield(pygame.sprite.Sprite):
         super().__init__(shield_group)
         self.parent_ship = parent_ship
         self.image = pygame.transform.scale(load_image('shield.png'), (120, 120))
+        self.image.set_alpha(127)
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
