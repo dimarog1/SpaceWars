@@ -39,6 +39,7 @@ def move_enemies(enemies):
 pygame.init()
 pygame.mixer.init()
 SCREEN = pygame.display.set_mode(SIZE)
+SCORE = 0
 
 con = sqlite3.connect('settings.db')
 cur = con.cursor()
@@ -351,14 +352,15 @@ def start_enemy_wave(wave, count):
     L = 100
     R = 700
     for enemy_info in wave:
-        enemy = enemies_id[enemy_info](SCREEN)
-        territory = (R - L) * ships_territory
-        x = L + territory * k + (territory - enemy.width) // 2
-        y = -150
-        enemy.set_start_pos(x, y)
-        enemies.add(enemy)
-        enemy.shooting = bool(k % 2)
-        k += 1
+        if enemy_info != 0:
+            enemy = enemies_id[enemy_info](SCREEN)
+            territory = (R - L) * ships_territory
+            x = L + territory * k + (territory - enemy.width) // 2
+            y = -150
+            enemy.set_start_pos(x, y)
+            enemies.add(enemy)
+            enemy.shooting = bool(k % 2)
+            k += 1
 
     tmp = 0
     while tmp < 200:
@@ -405,6 +407,76 @@ def start_enemy_wave(wave, count):
     return enemies
 
 
+def replace_ship(ship, change_y):
+    clock = pygame.time.Clock()
+    condition = True
+
+    while condition:
+        if change_y < 0:
+            condition = ship.rect.y >= -ship.height - 30
+        else:
+            condition = ship.rect.y <= 70
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            keyboard_check(event)
+
+        if player.alive():
+            player.change_pos(dx, dy)
+
+        ship.rect.y += change_y
+        bg_group.draw(SCREEN)
+        bg_group.update()
+        player_shots_group.update()
+        enemy_shots_group.update()
+        shield_group.update()
+        gains_group.update()
+        boom_group.update()
+
+        # Удаление кораблей, если они уничтожены и проверка на их столкновение
+        for enemy_info in enemy_group:
+            enemy_info.check_alive()
+            if pygame.sprite.collide_mask(player, enemy_info):
+                player.hp -= 1
+        for pl in player_group:
+            pl.check_alive()
+
+        clock.tick(FPS)
+
+        # Отрисовка
+        player_group.draw(SCREEN)
+        gains_group.draw(SCREEN)
+        enemy_group.draw(SCREEN)
+        player_shots_group.draw(SCREEN)
+        enemy_shots_group.draw(SCREEN)
+        shield_group.draw(SCREEN)
+        gains_group.update()
+        boom_group.draw(SCREEN)
+        pygame.display.flip()
+
+
+def third_boss_attack(enemy_reinforcement, enemy, count):
+    if len(enemy_reinforcement) == 0:
+        enemy.doing_third_attack = False
+        replace_ship(enemy, 2)
+        enemy.choose_attack()
+    move_enemies(enemy_reinforcement)
+    for unit in enemy_reinforcement:
+        unit.check_alive()
+        if pygame.sprite.collide_mask(player, unit):
+            player.hp -= 1
+        if count % unit.speed_of_shooting == 0:
+            if unit.alive() and unit.shooting:
+                unit.shoot()
+                unit.shooting = False
+                shoot_sound.play()
+            elif not unit.shooting:
+                unit.shooting = True
+        unit.draw_hp_bar()
+    enemy_reinforcement.draw(SCREEN)
+
+
 def main():
     global player, dx, dy
     pygame.display.set_caption(GAME_TITLE)
@@ -415,7 +487,10 @@ def main():
     with open(r'.\levels\level_one.json', 'r', encoding='utf-8') as level:
         level = json.loads(level.read())
     for wave in level:
-        waves.append(level[wave])
+        if wave != "SCORE":
+            waves.append(level[wave])
+        else:
+            SCORE = level[wave]
 
     player = Player(SCREEN)
     count = 1
@@ -438,6 +513,9 @@ def main():
                 del waves[0]
             else:
                 running = False
+                # !!! Добавление SCORE в бд !!!
+                # SCORE.добавить в бд
+                # !!! Добавление SCORE в бд !!!
 
         # Передвижение игрока и врагов
         for event in pygame.event.get():
@@ -451,12 +529,29 @@ def main():
             player_shot = player.projectile(player)
             shoot_sound.play()
 
+        bg_group.draw(SCREEN)
+        bg_group.update()
+
         for enemy in enemy_group:
             if isinstance(enemy, Boss):
-                if count % enemy.attack_intervals == 0:
-                    print(1)
-                    enemy.choose_attack()
-                enemy.attack(count)
+                if enemy.hp in range(2375, 2400) or enemy.hp in range(1575, 1600) or enemy.hp in range(975, 1000):
+                    enemy.attack_type = 3
+                    enemy.plug = 1
+                    enemy.hp -= 30
+                    enemy.doing_third_attack = True
+                    replace_ship(enemy, -2)
+                    enemy_reinforcement = start_enemy_wave(random.choice(enemy.waves), "ПОДКРЕПЛЕНИЕ")
+
+                if count % enemy.attack_intervals == 0 and not enemy.doing_third_attack:
+                    if enemy.plug == 0:
+                        enemy.choose_attack()
+                    else:
+                        enemy.plug = 0
+
+                if enemy.attack_type == 3:
+                    third_boss_attack(enemy_reinforcement, enemy, count)
+                else:
+                    enemy.attack(count)
                 break
             if count % enemy.speed_of_shooting == 0:
                 if enemy.alive() and enemy.shooting:
@@ -465,9 +560,6 @@ def main():
                     shoot_sound.play()
                 elif not enemy.shooting:
                     enemy.shooting = True
-
-        bg_group.draw(SCREEN)
-        bg_group.update()
 
         # Удаление кораблей, если они уничтожены и проверка на их столкновение
         for enemy in enemy_group:

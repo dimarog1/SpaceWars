@@ -76,15 +76,6 @@ class EnemyLevelOne(Enemy):
         self.chance = 40
         self.hp_bar = HpBar(self, self.screen)
 
-    # def change_pos(self, dx, dy):
-    #     if 50 <= self.rect.x + dx * self.speed_of_ship <= WIDTH - self.width - 50:
-    #         self.rect = self.rect.move(
-    #             self.speed_of_ship * dx,
-    #             self.speed_of_ship * dy
-    #         )
-    #     else:
-    #         self.speed_of_ship *= -1
-
 
 # Враг второго уровня
 class EnemyLevelTwo(Enemy):
@@ -137,11 +128,12 @@ class Boss(Enemy):
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.hp = 10000
-        self.speed_of_ship = 3
+        self.max_hp = 3000
+        self.hp = 3000
+        self.speed_of_ship = 4
         self.hp_bar = HpBar(self, self.screen)
-        self.attack_intervals = 300
-        # self.attacks = [self.first_attack, self.second_attack, self.third_attack]
+        self.attack_intervals = 220
+        self.plug = 0
         self.attacks = [self.first_attack, self.second_attack]
         self.attack_type = -1
         self.projectile = None
@@ -154,8 +146,19 @@ class Boss(Enemy):
 
         # Пераметры для второй атаки
         self.attack_duration = 150
-        self.shoots_interval = 10
-        self.projectile_second_attack = EnemyProjectileLevelOne
+        self.shoots_interval = 15
+        self.projectile_second_attack = BossProjectileSecondAttack
+
+        # Пераметры для третьей атаки
+        self.doing_third_attack = False
+        self.waves = (
+            [1, 1],
+            [1, 1, 1],
+            [1, 2, 1],
+            [2, 2],
+            [1, 3, 1],
+            [4]
+        )
 
     def choose_attack(self):
         self.attack_points = [(random.randint(50, 650), random.randint(10, 200)), 0, 0]
@@ -165,20 +168,18 @@ class Boss(Enemy):
                 x1, y1 = random.randint(50, 650), random.randint(10, 200)
                 x2, y2 = self.attack_points[ind - 1]
                 distance = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
-                if distance >= 200:
-                    print(x1, y1)
-                    print(x2, y2)
-                    print(distance)
+                if distance >= 300:
                     self.attack_points.insert(ind, (x1, y1))
                     flag = False
         flag = True
         self.attack_type = random.randint(1, 2)
         while flag:
-            if self.attack_type == self.prev_attack:
+            if self.attack_type == self.prev_attack == 2:
                 self.attack_type = random.randint(1, 2)
             else:
                 flag = False
         self.prev_attack = self.attack_type
+        self.plug = 1
 
     def attack(self, count):
         if self.attack_type != -1:
@@ -200,7 +201,7 @@ class Boss(Enemy):
                         + (point[1] - (self.rect.y + move[1])) ** 2) ** 0.5
             results.append((move, distance))
         move, distance = min(results, key=lambda elem: elem[1])
-        if (self.rect.x != point[0] and self.rect.y != point[1]) and distance > self.speed_of_ship:
+        if distance > self.speed_of_ship:
             self.rect.x += move[0]
             self.rect.y += move[1]
         else:
@@ -211,16 +212,13 @@ class Boss(Enemy):
     def second_attack(self, count):
         if self.attack_duration <= 0:
             self.attack_type = -1
-            self.attack_duration = 200
+            self.attack_duration = 150
             return
         if count % self.shoots_interval == 0:
-            angles = (125, 165, 195, 235)
+            angles = (120, 150, 180, 210, 240)
             for angle in angles:
-                projectile = BossProjectileSecondAttack(self, angle)
+                projectile = self.projectile_second_attack(self, angle)
         self.attack_duration -= 1
-
-    def third_attack(self, count=0):
-        pass
 
 
 # --- Выстрел ---
@@ -323,18 +321,21 @@ class BossProjectileSecondAttack(EnemyProjectileLevelOne):
         self.image = pygame.transform.rotate(self.image, self.angle)
         self.mask = pygame.mask.from_surface(self.image)
         self.speed_of_shot_y = 10
-        if self.angle == 125:
+        if self.angle == 120:
             self.speed_of_shot_x = -10
-            self.speed_of_shot_y = -0.8 * self.speed_of_shot_x
-        elif self.angle == 165:
+            self.speed_of_shot_y = -0.4 * self.speed_of_shot_x
+        elif self.angle == 150:
             self.speed_of_shot_x = -5
-            self.speed_of_shot_y = -3 * self.speed_of_shot_x
-        elif self.angle == 195:
+            self.speed_of_shot_y = -1.5 * self.speed_of_shot_x
+        elif self.angle == 180:
+            self.speed_of_shot_x = 0
+            self.speed_of_shot_y = 10
+        elif self.angle == 210:
             self.speed_of_shot_x = 5
-            self.speed_of_shot_y = 3 * self.speed_of_shot_x
-        elif self.angle == 235:
+            self.speed_of_shot_y = 1.5 * self.speed_of_shot_x
+        elif self.angle == 240:
             self.speed_of_shot_x = 10
-            self.speed_of_shot_y = 0.8 * self.speed_of_shot_x
+            self.speed_of_shot_y = 0.4 * self.speed_of_shot_x
 
     def change_pos(self):
         if self.rect.y + self.speed_of_shot <= HEIGHT + self.height \
