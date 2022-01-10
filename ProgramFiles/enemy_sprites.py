@@ -10,11 +10,6 @@ class Enemy(Ship, pygame.sprite.Sprite):
         Ship.__init__(self, position)
         pygame.sprite.Sprite.__init__(self, enemy_group)
 
-    def starting_ship(self):
-        if self.rect.y <= 100:
-            return True
-        return False
-
     def set_start_pos(self, x, y):
         self.rect = self.image.get_rect().move(x, y)
 
@@ -107,6 +102,7 @@ class EnemyLevelFour(Enemy):
         else:
             self.speed_of_ship *= -1
 
+
 # --- Выстрел ---
 
 # Выстрел врага
@@ -122,13 +118,20 @@ class EnemyProjectile(Projectile, pygame.sprite.Sprite):
             self.parent_ship.rect.x + self.parent_ship.width // 2 - self.width // 2,
             self.parent_ship.rect.y + self.parent_ship.height
         )
-        self.speed_of_shot = 10
+        self.speed_of_shot = 6
 
     def update(self):
         # Столкновения с кораблём
         for player in player_group:
             if pygame.sprite.collide_mask(self, player):
-                player.hp -= 1
+                if isinstance(self.parent_ship, EnemyLevelOne):
+                    player.hp -= 1
+                if isinstance(self.parent_ship, EnemyLevelTwo):
+                    player.hp -= 2
+                if isinstance(self.parent_ship, EnemyLevelThree):
+                    player.hp -= 3
+                if isinstance(self.parent_ship, EnemyLevelFour):
+                    player.hp -= 4
                 self.kill()
                 return
 
@@ -137,5 +140,3 @@ class EnemyProjectile(Projectile, pygame.sprite.Sprite):
             self.rect.y += self.speed_of_shot
         else:
             self.kill()
-
-

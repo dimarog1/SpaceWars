@@ -1,20 +1,23 @@
 from ProgramFiles.consts import pygame
+from ProgramFiles.base_classes import Button, BoxAndRect
 
 
 # кнопки меню
-class Button:
+class ClassicButton(Button):
     def __init__(self, font, x, y, text_of_article, color_of_article=(0, 255, 0), color_of_selected_article=(255, 0, 0)):
-        self.x, self.y = x, y
+        super().__init__(x, y)
         self.text_of_article = text_of_article
         self.color_of_article = color_of_article
         self.color_of_selected_article = color_of_selected_article
         self.font = font
         self.off_string = font.render(self.text_of_article, 1, self.color_of_article)
         self.on_string = font.render(self.text_of_article, 1, self.color_of_selected_article)
+        self.selected = True
 
     def render(self, surface):
         mouse_pos = pygame.mouse.get_pos()
-        if self.x < mouse_pos[0] < self.x + self.off_string.get_width() and self.y < mouse_pos[1] < self.y + self.off_string.get_height():
+        if self.x < mouse_pos[0] < self.x + self.off_string.get_width()\
+                and self.y < mouse_pos[1] < self.y + self.off_string.get_height():
             surface.blit(self.on_string, (self.x, self.y))
         else:
             surface.blit(self.off_string, (self.x, self.y))
@@ -29,9 +32,9 @@ class Button:
 
 
 # кнопки в настройках
-class SpinBox:
+class SpinBox(Button):
     def __init__(self, x, y, loud_of_sound):
-        self.x, self.y = x, y
+        super().__init__(x, y)
         self.max_value = 0.9
         self.min_value = 0.1
         self.step = 0.1
@@ -41,7 +44,8 @@ class SpinBox:
         self.rect1 = pygame.Rect(self.x - 35, self.y - 5, 35, 50)
         self.rect2 = pygame.Rect(self.x + 350, self.y - 5, 35, 50)
 
-    def render(self, surface, font):
+    def render(self, surface):
+        font = pygame.font.Font(None, 38)
         mouse_pos = pygame.mouse.get_pos()
         mouse_btn_clicked = pygame.mouse.get_pressed()
         pygame.draw.rect(surface, (160, 160, 160), (self.x + 10, self.y, 330, 35))
@@ -50,6 +54,7 @@ class SpinBox:
         self.decrease_rect(surface)
         pygame.draw.polygon(surface, (pygame.Color('white')), self.triangle_points[0])
         pygame.draw.polygon(surface, (pygame.Color('white')), self.triangle_points[1])
+
         if self.rect1.collidepoint(mouse_pos) and mouse_btn_clicked[0] == 1:
             # задержка времени чтобы значения не перематывались быстро(типа фпс)
             pygame.time.delay(200)
@@ -84,21 +89,20 @@ class SpinBox:
             self.curr_value -= self.step
 
 
-class InputBox:
+class InputBox(BoxAndRect, Button):
     def __init__(self, x, y, w, h, text, active_color=(255, 0, 0), inactive_color=(0, 255, 0)):
-        self.x, self.y = x, y
-        self.width, self.height = w, h
-        self.curr_color, self.inactive_color = None, inactive_color
-        self.active_color = active_color
+        super().__init__(x, y, w, h, active_color, inactive_color)
         self.text = text.capitalize()
         self.font = pygame.font.Font(None, h + 10)
         self.text_has_changed = False
         self.active = False
+        self.curr_color = None
+        self.selected = True
 
     def update(self):
         mouse_pos = pygame.mouse.get_pos()
-        mouse_key_pressed = pygame.mouse.get_pressed()
-        if mouse_key_pressed[0] == 1:
+        mouse_btn_clicked = pygame.mouse.get_pressed()
+        if mouse_btn_clicked[0] == 1:
             if self.x < mouse_pos[0] < self.x + self.width and self.y < mouse_pos[1] < self.y + self.height:
                 self.active = True
             else:
@@ -126,3 +130,33 @@ class InputBox:
 
     def text_changed(self):
         return self.text_has_changed
+
+    def is_selected(self):
+        mouse_pos = pygame.mouse.get_pos()
+        if self.x < mouse_pos[0] < self.x + self.width and self.y < mouse_pos[1] < self.y + self.height:
+            return True
+        return False
+
+
+class AnimatedRect(BoxAndRect):
+    def __init__(self, x, y, w, h, active_color=(255, 0, 0), inactive_color=(0, 255, 0)):
+        super().__init__(x, y, w, h, active_color, inactive_color)
+        self.active = False
+        self.curr_color = None
+
+    def update(self):
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_btn_clicked = pygame.mouse.get_pressed()
+        if mouse_btn_clicked[0] == 1:
+            if self.x < mouse_pos[0] < self.x + self.width and self.y < mouse_pos[1] < self.y + self.height:
+                self.active = True
+            else:
+                self.active = False
+            self.curr_color = self.active_color if self.active else self.inactive_color
+
+    def draw(self, surface, width=3):
+        mouse_pos = pygame.mouse.get_pos()
+        if self.x < mouse_pos[0] < self.x + self.width and self.y < mouse_pos[1] < self.y + self.height:
+            pygame.draw.rect(surface, self.active_color, (self.x, self.y, self.width, self.height), width=width)
+        else:
+            pygame.draw.rect(surface, self.curr_color, (self.x, self.y, self.width, self.height), width=width)

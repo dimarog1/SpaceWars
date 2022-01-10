@@ -1,10 +1,9 @@
 import os
-from music.sounds import boom_sound
+from music.sounds import boom_sound, selected_btn_sound
 
 from ProgramFiles.consts import *
 
-
-pygame.mixer.init()
+# pygame.mixer.init()
 
 # !!! SPRITES GROUPS !!!
 all_sprites = pygame.sprite.Group()
@@ -57,7 +56,7 @@ class Ship(pygame.sprite.Sprite):
             )
 
     def check_alive(self):
-        # Проверяем количство hp
+        # Проверяем количество hp
         if self.hp <= 0:
             self.kill()
             boom = BoomSprite(self)
@@ -138,3 +137,44 @@ class SecondBg(FirstBg):
         super().__init__()
         self.image = load_image('background2.jpg')
         self.rect = self.image.get_rect().move(0, -800)
+
+
+# кнопки
+class Button:
+    def __init__(self, x, y):
+        self.x, self.y = x, y
+
+    def is_selected(self):
+        mouse_pos = pygame.mouse.get_pos()
+
+        if self.x < mouse_pos[0] < self.x + self.off_string.get_width() \
+                and self.y < mouse_pos[1] < self.y + self.off_string.get_height():
+            return True
+        return False
+
+    def play_sound_if_btn_selected(self):
+        if self.is_selected():
+            if self.selected:
+                selected_btn_sound.play()
+                self.selected = False
+        else:
+            self.selected = True
+
+
+class BoxAndRect:
+    def __init__(self, x, y, w, h, active_color=(255, 0, 0), inactive_color=(0, 255, 0)):
+        self.x, self.y = x, y
+        self.width, self.height = w, h
+        self.active_color, self.inactive_color = active_color, inactive_color
+        self.active = False
+        self.curr_color = None
+
+    # def update(self):
+    #     mouse_pos = pygame.mouse.get_pos()
+    #     mouse_btn_clicked = pygame.mouse.get_pressed()
+    #     if mouse_btn_clicked[0] == 1:
+    #         if self.x < mouse_pos[0] < self.x + self.width and self.y < mouse_pos[1] < self.y + self.height:
+    #             self.active = True
+    #         else:
+    #             self.active = False
+    #         self.curr_color = self.active_color if self.active else self.inactive_color

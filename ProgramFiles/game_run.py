@@ -1,20 +1,30 @@
 import json
+import random
 
 import sqlite3
 
-import pygame.transform
+import keyboard as keyboard
+import pygame
 
 from ProgramFiles.consts import *
 from ProgramFiles.enemy_sprites import *
 from ProgramFiles.player_sprites import *
 from ProgramFiles.buttons import *
 from itertools import cycle
-from music.sounds import boom_sound, shoot_sound, btn_sound, fon_sound
+from music.sounds import boom_sound, shoot_sound, btn_sound, fon_sound, selected_btn_sound, game_over_sound
 
 
 def terminate():
     pygame.quit()
     exit(0)
+
+
+def select_name_of_wave(level, wave):
+    name = ''
+    for elem in level:
+        if level[elem] == wave:
+            name = elem
+    return name
 
 
 pygame.init()
@@ -36,41 +46,71 @@ second_bg = SecondBg()
 
 GAME_TITLE_IMG = pygame.transform.scale(load_image('game_title.png', -1), (300, 200))
 
+
 shoot_sound.set_volume(loud_of_effects)
 boom_sound.set_volume(loud_of_effects)
+game_over_sound.set_volume(loud_of_effects)
 fon_sound.set_volume(loud_of_menu_music)
 btn_sound.set_volume(loud_of_menu_music)
+selected_btn_sound.set_volume(loud_of_menu_music)
+
+dx = dy = 0
+
+
+def keyboard_check(event):
+    global dx, dy
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_ESCAPE:
+            if pause():
+                menu()
+
+    if event.type == pygame.KEYDOWN:
+        if event.key == KEY_UP:
+            dy += -1
+        if event.key == KEY_DOWN:
+            dy += 1
+        if event.key == KEY_LEFT:
+            dx += -1
+        if event.key == KEY_RIGHT:
+            dx += 1
+
+    if event.type == pygame.KEYUP:
+        if event.key == KEY_UP:
+            dy += 1
+        if event.key == KEY_DOWN:
+            dy += -1
+        if event.key == KEY_LEFT:
+            dx += 1
+        if event.key == KEY_RIGHT:
+            dx += -1
 
 
 def menu():
-    background_enemies = [EnemyLevelThree(), EnemyLevelThree(), EnemyLevelThree(),
-                          EnemyLevelThree(), EnemyLevelThree(), EnemyLevelThree(),
-                          EnemyLevelThree(), EnemyLevelThree(), EnemyLevelThree(),
-                          EnemyLevelThree(), EnemyLevelThree(), EnemyLevelThree()]
-    background_enemies[0].set_start_pos(150, 900)
-    background_enemies[1].set_start_pos(100, 1000)
-    background_enemies[2].set_start_pos(150, 1100)
-    background_enemies[3].set_start_pos(100, 1200)
-    background_enemies[4].set_start_pos(150, 1300)
-    background_enemies[5].set_start_pos(100, 1400)
-    background_enemies[6].set_start_pos(550, 1600)
-    background_enemies[7].set_start_pos(500, 1700)
-    background_enemies[8].set_start_pos(550, 1800)
-    background_enemies[9].set_start_pos(500, 1900)
-    background_enemies[10].set_start_pos(550, 2000)
-    background_enemies[11].set_start_pos(500, 2100)
+    img = pygame.transform.scale(load_image('enemy_level_two.png'), (90, 90))
+    img1 = pygame.transform.scale(load_image('enemy_level_four.png'), (130, 130))
+    background_enemies = [EnemyLevelFour(), EnemyLevelTwo(), EnemyLevelTwo(), EnemyLevelTwo(),
+                          EnemyLevelTwo(), EnemyLevelTwo(), EnemyLevelTwo(),
+                          ]
+    x = 125
+    background_enemies[0].image = pygame.transform.rotate(img1, 180)
+    background_enemies[0].set_start_pos(110, 900)
+    background_enemies[1].set_start_pos(x, 1100)
+    background_enemies[2].set_start_pos(x, 1200)
+    background_enemies[3].set_start_pos(x, 1300)
+    background_enemies[4].set_start_pos(x, 1400)
+    background_enemies[5].set_start_pos(x, 1500)
+    background_enemies[6].set_start_pos(x, 1600)
 
-    pygame.mixer.init()
     font = pygame.font.SysFont('Jokerman', 48)
     clock = pygame.time.Clock()
 
     running = True
 
-    play_btn = Button(font, 350, 240, 'Play')
-    shop_btn = Button(font, 350, 310, 'Shop')
-    settings_btn = Button(font, 350, 380, 'Settings')
-    quit_btn = Button(font, 350, 450, 'Quit')
-    img = pygame.transform.scale(load_image('enemy_level_three.png'), (100, 100))
+    play_btn = ClassicButton(font, 350, 240, 'Play')
+    shop_btn = ClassicButton(font, 350, 310, 'Shop')
+    settings_btn = ClassicButton(font, 350, 380, 'Settings')
+    quit_btn = ClassicButton(font, 350, 450, 'Quit')
+
     fon_sound.play(-1)
 
     while running:
@@ -80,15 +120,18 @@ def menu():
                 terminate()
 
         if play_btn.is_clicked():
-            fon_sound.stop()
             btn_sound.play()
+            fon_sound.stop()
             for enemy in enemy_group:
                 enemy.kill()
             main()
 
+        if shop_btn.is_clicked():
+            btn_sound.play()
+            shop()
+
         if quit_btn.is_clicked():
             btn_sound.play()
-            pygame.time.delay(200)
             terminate()
 
         if settings_btn.is_clicked():
@@ -99,13 +142,26 @@ def menu():
         bg_group.update()
 
         for enemy in enemy_group:
-            enemy.image = pygame.transform.rotate(img, 180)
             enemy.rect.y += -3
+            if isinstance(enemy, EnemyLevelTwo):
+                enemy.image = pygame.transform.rotate(img, 180)
             if enemy.rect.y <= -enemy.rect.height:
-                enemy.rect.y = 850
+                if isinstance(enemy, EnemyLevelTwo):
+                    enemy.rect.y = 840
+                else:
+                    enemy.rect.y = 800
+                if enemy.rect.x >= 450:
+                    enemy.rect.x -= 400
+                else:
+                    enemy.rect.x += 400
 
         enemy_group.draw(SCREEN)
         SCREEN.blit(GAME_TITLE_IMG, (250, 50))
+
+        play_btn.play_sound_if_btn_selected()
+        shop_btn.play_sound_if_btn_selected()
+        settings_btn.play_sound_if_btn_selected()
+        quit_btn.play_sound_if_btn_selected()
 
         play_btn.render(SCREEN)
         shop_btn.render(SCREEN)
@@ -143,11 +199,12 @@ def start_screen():
                 terminate()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    pygame.mixer.quit()
+                    btn_sound.play()
                     return
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if intro_rect.x < event.pos[0] < intro_rect.x + intro_rect.width \
+                if intro_rect.x < event.pos[0] < intro_rect.x + intro_rect.width\
                         and intro_rect.y < event.pos[1] < intro_rect.height + intro_rect.y:
+                    btn_sound.play()
                     return
             elif event.type == blink_event:
                 blink_surface = next(blink_surfaces)
@@ -170,10 +227,11 @@ def settings():
     font = pygame.font.Font(None, 38)
 
     surface.fill((128, 128, 128))
-    # surface.set_alpha(30)
+    # это для того чтобы была иллюзия плавного перехода
+    surface.set_alpha(50)
 
-    back_btn = Button(font, 20, 750, 'Back')
-    apply_btn = Button(font, 700, 750, 'Apply')
+    back_btn = ClassicButton(font, 20, 750, 'Back')
+    apply_btn = ClassicButton(font, 700, 750, 'Apply')
 
     pg_key = pygame.key
 
@@ -212,12 +270,18 @@ def settings():
                         key.update_text(event)
 
         if back_btn.is_clicked():
+            btn_sound.play()
             return
         elif apply_btn.is_clicked():
+            btn_sound.play()
+
+            loud_of_menu_music = music_sound_spinbox.curr_value
+            loud_of_effects = music_effects_sound_spinbox.curr_value
+
             cur.execute("""UPDATE volume_values
-                                SET music_sound = ?""", (str(music_sound_spinbox.curr_value),))
+                                SET music_sound = ?""", (str(loud_of_menu_music),))
             cur.execute("""UPDATE volume_values
-                                SET music_effects_sound = ?""", (str(music_effects_sound_spinbox.curr_value),))
+                                SET music_effects_sound = ?""", (str(loud_of_effects),))
             cur.execute("""UPDATE key_bindings
                                 SET Key_up = ?""", (pg_key.key_code(move_up_k.text),))
             cur.execute("""UPDATE key_bindings
@@ -228,35 +292,39 @@ def settings():
                                 SET Key_right = ?""", (pg_key.key_code(move_right_k.text),))
             con.commit()
 
-            loud_of_menu_music = music_sound_spinbox.curr_value
-            loud_of_effects = music_effects_sound_spinbox.curr_value
-
             shoot_sound.set_volume(loud_of_effects)
             boom_sound.set_volume(loud_of_effects)
+            game_over_sound.set_volume(loud_of_effects)
             fon_sound.set_volume(loud_of_menu_music)
             btn_sound.set_volume(loud_of_menu_music)
+            selected_btn_sound.set_volume(loud_of_menu_music)
 
             KEY_UP = pg_key.key_code(move_up_k.text)
             KEY_DOWN = pg_key.key_code(move_down_k.text)
             KEY_RIGHT = pg_key.key_code(move_right_k.text)
             KEY_LEFT = pg_key.key_code(move_left_k.text)
-
+            return
         # Отрисовка
-        music_sound_spinbox.render(surface, font)
-        music_effects_sound_spinbox.render(surface, font)
+        music_sound_spinbox.render(surface)
+        music_effects_sound_spinbox.render(surface)
 
-        back_btn.render(surface)
-        apply_btn.render(surface)
+        back_btn.play_sound_if_btn_selected()
+        apply_btn.play_sound_if_btn_selected()
+
+        back_btn.render(SCREEN)
+        apply_btn.render(SCREEN)
 
         for key1 in keys:
             key1.update()
             key1.draw(surface, 7)
+            key1.play_sound_if_btn_selected()
 
         clock.tick(FPS)
         pygame.display.flip()
 
 
-def start_enemy_wave(wave):
+def start_enemy_wave(wave, count):
+    global dx, dy
     enemies_id = {
         1: EnemyLevelOne,
         2: EnemyLevelTwo,
@@ -272,38 +340,78 @@ def start_enemy_wave(wave):
         enemy = enemies_id[enemy_id]()
         territory = (R - L) * ships_territory
         x = L + territory * k + (territory - enemy.width) // 2
-        y = 50
-        print(x, y)
+        y = -150
         enemy.set_start_pos(x, y)
-        print(enemy)
-        print('---')
         enemies.add(enemy)
         k += 1
+    tmp = 0
+    while tmp < 200:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            keyboard_check(event)
+
+        if player.alive():
+            player.change_pos(dx, dy)
+
+        for en in enemies:
+            en.rect.y += 1
+        tmp += 1
+        bg_group.draw(SCREEN)
+        bg_group.update()
+        player_shots_group.update()
+        enemy_shots_group.update()
+        boom_group.update()
+
+        # Удаление кораблей, если они уничтожены и проверка на их столкновение
+        for enemy in enemy_group:
+            enemy.check_alive()
+            if pygame.sprite.collide_mask(player, enemy):
+                player.hp -= 1
+        for pl in player_group:
+            pl.check_alive()
+
+        clock.tick(FPS)
+
+        # Отрисовка
+        player_shots_group.draw(SCREEN)
+        enemy_shots_group.draw(SCREEN)
+        player_group.draw(SCREEN)
+        enemy_group.draw(SCREEN)
+        boom_group.draw(SCREEN)
+        display_text(SCREEN, count, WIDTH // 2 - len(count) * 22, HEIGHT // 2 - 100, font_size=100, color=pygame.Color('red'))
+        pygame.display.flip()
     return enemies
 
 
 def main():
+    global clock, player, dx, dy
     pygame.display.set_caption(GAME_TITLE)
     clock = pygame.time.Clock()
 
     # Загрузка уровня
     waves = list()
-    with open(r'.\levels\level_one.json') as level:
+    with open(r'.\levels\level_one.json', 'r', encoding='utf-8') as level:
         level = json.loads(level.read())
     for wave in level:
         waves.append(level[wave])
 
     player = Player()
-    # enemy1 = EnemyLevelFour((100, 50))
-    dx = dy = 0
+    # enemy1 = EnemyLevelFour()
+    # enemy1.set_start_pos(109, 425)
     count = 1
 
     # Скорость выстрела (чем меньше число, тем больше скорость)
-    player_speed_shooting = 15
+    player_speed_shooting = 20
     enemy_speed_shooting = 90
+    a = 1000000
 
     # Выпуск корабля игрока
     while player.starting_ship():
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+
         player.rect.y -= 1
 
         bg_group.draw(SCREEN)
@@ -313,13 +421,12 @@ def main():
         # Отрисовка
         player_group.draw(SCREEN)
         enemy_group.draw(SCREEN)
+        boom_group.draw(SCREEN)
         pygame.display.flip()
 
-    print(waves)
-    enemies_of_wave = start_enemy_wave(waves[0])
+    name = select_name_of_wave(level, waves[0])
+    enemies_of_wave = start_enemy_wave(waves[0], name)
     del waves[0]
-    for e in enemies_of_wave:
-        print(e)
 
     running = True
 
@@ -327,7 +434,8 @@ def main():
 
         if len(enemies_of_wave) == 0:
             if len(waves) != 0:
-                enemies_of_wave = start_enemy_wave(waves[0])
+                name = select_name_of_wave(level, waves[0])
+                enemies_of_wave = start_enemy_wave(waves[0], name)
                 del waves[0]
             else:
                 running = False
@@ -335,30 +443,7 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    if pause():
-                        menu()
-
-            if event.type == pygame.KEYDOWN:
-                if event.key == KEY_UP:
-                    dy += -1
-                if event.key == KEY_DOWN:
-                    dy += 1
-                if event.key == KEY_LEFT:
-                    dx += -1
-                if event.key == KEY_RIGHT:
-                    dx += 1
-
-            if event.type == pygame.KEYUP:
-                if event.key == KEY_UP:
-                    dy += 1
-                if event.key == KEY_DOWN:
-                    dy += -1
-                if event.key == KEY_LEFT:
-                    dx += 1
-                if event.key == KEY_RIGHT:
-                    dx += -1
+            keyboard_check(event)
 
         if count % player_speed_shooting == 0:
             # Вылет выстрела
@@ -366,20 +451,19 @@ def main():
                 player_shot = PlayerProjectileLevelOne(player)
                 shoot_sound.play()
 
-        if count % enemy_speed_shooting == 0:
-            for enemy in enemy_group:
-                if enemy.alive():
-                    enemy_shot = EnemyProjectile(enemy)
-                    shoot_sound.play()
+        for enemy in enemy_group:
+            if enemy.alive() and random.randint(0, enemy_speed_shooting + 100) == 1:
+                enemy_shot = EnemyProjectile(enemy)
+                shoot_sound.play()
 
         bg_group.draw(SCREEN)
         bg_group.update()
 
-        # Удаление кораблей, если они уничтожены
+        # Удаление кораблей, если они уничтожены и проверка на их столкновение
         for enemy in enemy_group:
             enemy.check_alive()
             if pygame.sprite.collide_mask(player, enemy):
-                player.hp -= 1
+                player.hp = 0
         for pl in player_group:
             pl.check_alive()
 
@@ -397,13 +481,15 @@ def main():
 
         # Отрисовка
         player_group.draw(SCREEN)
-        enemy_group.draw(SCREEN)
         enemies_of_wave.draw(SCREEN)
         player_shots_group.draw(SCREEN)
         enemy_shots_group.draw(SCREEN)
         boom_group.draw(SCREEN)
         pygame.display.flip()
         count += 1
+
+        if not player.alive():
+            game_over()
 
     pygame.mixer.quit()
     con.close()
@@ -412,14 +498,15 @@ def main():
 
 def pause():
     surface = pygame.Surface(SIZE)
-    surface.set_alpha(100)
+    surface.set_alpha(70)
     is_paused = True
 
-    font = pygame.font.Font(None, 40)
+    font = pygame.font.SysFont('Jokerman', 48)
     clock = pygame.time.Clock()
 
-    resume_btn = Button(font, 340, 300, 'Continue')
-    back_to_menu_btn = Button(font, 340, 350, 'Back to menu')
+    resume_btn = ClassicButton(font, 320, 200, 'Continue')
+    settings_btn = ClassicButton(font, 320, 270, 'Settings')
+    back_to_menu_btn = ClassicButton(font, 320, 340, 'Back to menu')
 
     while is_paused:
         SCREEN.blit(surface, (0, 0))
@@ -432,30 +519,122 @@ def pause():
                     return False
 
         if resume_btn.is_clicked():
+            btn_sound.play()
             return False
 
+        if settings_btn.is_clicked():
+            btn_sound.play()
+            settings()
+
         if back_to_menu_btn.is_clicked():
-            for player_shot in player_shots_group:
-                player_shot.kill()
-            for enemy_shot in enemy_shots_group:
-                enemy_shot.kill()
-            for player in player_group:
-                player.kill()
-            for enemy in enemy_group:
-                enemy.kill()
-            for boom in boom_group:
-                boom.kill()
+            btn_sound.play()
+            delete_all_sprites()
+            pygame.time.delay(200)
             return True
 
-        resume_btn.render(surface)
-        back_to_menu_btn.render(surface)
+        resume_btn.render(SCREEN)
+        back_to_menu_btn.render(SCREEN)
+        settings_btn.render(SCREEN)
+
+        resume_btn.play_sound_if_btn_selected()
+        settings_btn.play_sound_if_btn_selected()
+        back_to_menu_btn.play_sound_if_btn_selected()
 
         pygame.display.flip()
         clock.tick(60)
 
 
 # Отрисовка текста на экран
-def display_text(surface, text, x, y, font_size=40, color=(255, 255, 255)):
+def display_text(surface, text, x, y, font_size=40, color=(255, 255, 255), draw_in_the_middle=False):
     font = pygame.font.Font(None, font_size)
     string = font.render(text, 1, color)
+    if draw_in_the_middle:
+        x = WIDTH // 2 - string.get_width() // 2
     surface.blit(string, (x, y))
+
+
+def shop():
+    shop_surface = pygame.Surface(SIZE)
+
+    ship1 = pygame.transform.scale(load_image('player_from_shop1.png'), (100, 100))
+    ship2 = pygame.transform.scale(load_image('player_from_shop2.png'), (100, 100))
+    ship3 = pygame.transform.scale(load_image('player_from_shop3.png'), (70, 70))
+
+    rects = [AnimatedRect(50, 90, ship1.get_width() + 20, ship1.get_height() + 30),
+             AnimatedRect(370, 90, ship2.get_width() + 20, ship2.get_height() + 30),
+             AnimatedRect(665, 90, ship3.get_width() + 50, ship3.get_height() + 60)]
+
+    shop_surface.blit(ship1, (60, 100))
+    shop_surface.blit(ship2, (380, 100))
+    shop_surface.blit(ship3, (690, 120))
+
+    is_running = True
+    while is_running:
+        SCREEN.blit(shop_surface, (0, 0))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                return
+
+        for rect in rects:
+            rect.update()
+            rect.draw(shop_surface)
+
+        pygame.display.flip()
+
+
+def game_over():
+    game_over_surface = pygame.Surface(SIZE)
+    game_over_surface.set_alpha(30)
+
+    font = pygame.font.SysFont('Jokerman', 40)
+    clock = pygame.time.Clock()
+
+    retry_btn = ClassicButton(font, 340, 300, 'Retry')
+    back_to_menu_btn = ClassicButton(font, 300, 360, 'Back to menu')
+    is_running = True
+
+    game_over_sound.play()
+    display_text(game_over_surface, 'You`ve lost', 300, 100, 70, draw_in_the_middle=True)
+
+    while is_running:
+        SCREEN.blit(game_over_surface, (0, 0))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+
+        if retry_btn.is_clicked():
+            game_over_sound.stop()
+            btn_sound.play()
+            delete_all_sprites()
+            main()
+
+        if back_to_menu_btn.is_clicked():
+            game_over_sound.stop()
+            btn_sound.play()
+            pygame.time.delay(200)
+            delete_all_sprites()
+            menu()
+
+        retry_btn.play_sound_if_btn_selected()
+        back_to_menu_btn.play_sound_if_btn_selected()
+
+        retry_btn.render(SCREEN)
+        back_to_menu_btn.render(SCREEN)
+
+        clock.tick(FPS)
+        pygame.display.flip()
+
+
+def delete_all_sprites():
+    for player_shot in player_shots_group:
+        player_shot.kill()
+    for enemy_shot in enemy_shots_group:
+        enemy_shot.kill()
+    for pl in player_group:
+        pl.kill()
+    for enemy in enemy_group:
+        enemy.kill()
+    for boom in boom_group:
+        boom.kill()
