@@ -34,18 +34,20 @@ SCREEN = pygame.display.set_mode(SIZE)
 con = sqlite3.connect('settings.db')
 cur = con.cursor()
 cur1 = con.cursor()
+cur2 = con.cursor()
 
 loud = cur.execute("""SELECT music_sound, music_effects_sound FROM volume_values""")
 bindings = cur1.execute("""SELECT Key_up, Key_down, Key_right, Key_left FROM key_bindings""")
+ships_characteristic = cur2.execute("""SELECT price, size, damage FROM shop""")
 
 loud_of_menu_music, loud_of_effects = map(float, *loud)
 KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT = map(int, *bindings)
+ship1_characteristics, ship2_characteristics, ship3_characteristics = list(ships_characteristic)
 
 first_bg = FirstBg()
 second_bg = SecondBg()
 
 GAME_TITLE_IMG = pygame.transform.scale(load_image('game_title.png', -1), (300, 200))
-
 
 shoot_sound.set_volume(loud_of_effects)
 boom_sound.set_volume(loud_of_effects)
@@ -86,21 +88,24 @@ def keyboard_check(event):
 
 
 def menu():
-    img = pygame.transform.scale(load_image('enemy_level_two.png'), (90, 90))
-    img1 = pygame.transform.scale(load_image('enemy_level_four.png'), (130, 130))
+    enemy_level_two_img = pygame.transform.scale(load_image('enemy_level_two.png'), (90, 90))
+    enemy_level_four_img = pygame.transform.scale(load_image('enemy_level_four.png'), (130, 130))
+
     background_enemies = [EnemyLevelFour(), EnemyLevelTwo(), EnemyLevelTwo(), EnemyLevelTwo(),
-                          EnemyLevelTwo(), EnemyLevelTwo(), EnemyLevelTwo(),
-                          ]
+                          EnemyLevelTwo(), EnemyLevelTwo()]
+    secret_enemy = SecretEnemy()
+    secret_enemy.set_start_pos(350, 850)
+
     x = 125
-    background_enemies[0].image = pygame.transform.rotate(img1, 180)
+    background_enemies[0].image = pygame.transform.rotate(enemy_level_four_img, 180)
     background_enemies[0].set_start_pos(110, 900)
     background_enemies[1].set_start_pos(x, 1100)
     background_enemies[2].set_start_pos(x, 1200)
     background_enemies[3].set_start_pos(x, 1300)
     background_enemies[4].set_start_pos(x, 1400)
     background_enemies[5].set_start_pos(x, 1500)
-    background_enemies[6].set_start_pos(x, 1600)
 
+    count = 0
     font = pygame.font.SysFont('Jokerman', 48)
     clock = pygame.time.Clock()
 
@@ -142,18 +147,26 @@ def menu():
         bg_group.update()
 
         for enemy in enemy_group:
-            enemy.rect.y += -3
+            if not isinstance(enemy, SecretEnemy):
+                enemy.rect.y += -3
+            if isinstance(enemy, SecretEnemy) and count >= 10:
+                enemy.rect.y += -1
             if isinstance(enemy, EnemyLevelTwo):
-                enemy.image = pygame.transform.rotate(img, 180)
+                enemy.image = pygame.transform.rotate(enemy_level_two_img, 180)
             if enemy.rect.y <= -enemy.rect.height:
+                if isinstance(enemy, SecretEnemy):
+                    count = 0
+                    enemy.rect.x = 350
                 if isinstance(enemy, EnemyLevelTwo):
                     enemy.rect.y = 840
+                    count += 1
                 else:
                     enemy.rect.y = 800
                 if enemy.rect.x >= 450:
-                    enemy.rect.x -= 400
+                    enemy.rect.x -= 500
                 else:
-                    enemy.rect.x += 400
+                    if not isinstance(enemy, SecretEnemy):
+                        enemy.rect.x += 500
 
         enemy_group.draw(SCREEN)
         SCREEN.blit(GAME_TITLE_IMG, (250, 50))
@@ -555,10 +568,13 @@ def display_text(surface, text, x, y, font_size=40, color=(255, 255, 255), draw_
 
 def shop():
     shop_surface = pygame.Surface(SIZE)
+    font_size = 30
 
     ship1 = pygame.transform.scale(load_image('player_from_shop1.png'), (100, 100))
     ship2 = pygame.transform.scale(load_image('player_from_shop2.png'), (100, 100))
     ship3 = pygame.transform.scale(load_image('player_from_shop3.png'), (70, 70))
+
+    buy_btn = ShopButton(300, 700, 200, 20)
 
     rects = [AnimatedRect(50, 90, ship1.get_width() + 20, ship1.get_height() + 30),
              AnimatedRect(370, 90, ship2.get_width() + 20, ship2.get_height() + 30),
@@ -567,6 +583,18 @@ def shop():
     shop_surface.blit(ship1, (60, 100))
     shop_surface.blit(ship2, (380, 100))
     shop_surface.blit(ship3, (690, 120))
+
+    display_text(shop_surface, 'SCORE: {}', 600, 10)
+
+    display_text(shop_surface, 'Price: {}'.format(ship1_characteristics[0]), 50, 250, font_size)
+    display_text(shop_surface, 'Price: {}'.format(ship2_characteristics[0]), 370, 250, font_size)
+    display_text(shop_surface, 'Price: {}'.format(ship3_characteristics[0]), 670, 250, font_size)
+    display_text(shop_surface, 'Size: {}'.format(ship1_characteristics[1]), 50, 300, font_size)
+    display_text(shop_surface, 'Size: {}'.format(ship2_characteristics[1]), 370, 300, font_size)
+    display_text(shop_surface, 'Size: {}'.format(ship3_characteristics[1]), 670, 300, font_size)
+    display_text(shop_surface, 'Damage: {}'.format(ship1_characteristics[2]), 50, 350, font_size)
+    display_text(shop_surface, 'Damage: {}'.format(ship2_characteristics[2]), 370, 350, font_size)
+    display_text(shop_surface, 'Damage {}'.format(ship3_characteristics[2]), 670, 350, font_size)
 
     is_running = True
     while is_running:
@@ -577,9 +605,18 @@ def shop():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 return
 
+        if buy_btn.is_clicked():
+            for rect in rects:
+                if rect.active:
+                    btn_sound.play()
+                    return
+
         for rect in rects:
             rect.update()
             rect.draw(shop_surface)
+
+        buy_btn.render(SCREEN)
+        buy_btn.play_sound_if_btn_selected()
 
         pygame.display.flip()
 

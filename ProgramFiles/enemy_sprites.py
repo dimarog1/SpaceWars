@@ -103,6 +103,25 @@ class EnemyLevelFour(Enemy):
             self.speed_of_ship *= -1
 
 
+# враг в меню
+class SecretEnemy(Enemy):
+    def __init__(self):
+        Enemy.__init__(self)
+        self.image = pygame.transform.scale(load_image('secret_enemy.png'), (170, 200))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+
+    def change_pos(self, dx, dy):
+        if 50 <= self.rect.x + dx * self.speed_of_ship <= WIDTH - self.width - 50:
+            self.rect = self.rect.move(
+                self.speed_of_ship * dx,
+                self.speed_of_ship * dy
+            )
+        else:
+            self.speed_of_ship *= -1
+
+
 # --- Выстрел ---
 
 # Выстрел врага

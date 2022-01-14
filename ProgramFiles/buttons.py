@@ -7,11 +7,9 @@ class ClassicButton(Button):
     def __init__(self, font, x, y, text_of_article, color_of_article=(0, 255, 0), color_of_selected_article=(255, 0, 0)):
         super().__init__(x, y)
         self.text_of_article = text_of_article
-        self.color_of_article = color_of_article
-        self.color_of_selected_article = color_of_selected_article
         self.font = font
-        self.off_string = font.render(self.text_of_article, 1, self.color_of_article)
-        self.on_string = font.render(self.text_of_article, 1, self.color_of_selected_article)
+        self.off_string = font.render(self.text_of_article, 1, color_of_article)
+        self.on_string = font.render(self.text_of_article, 1, color_of_selected_article)
         self.selected = True
 
     def render(self, surface):
@@ -160,3 +158,26 @@ class AnimatedRect(BoxAndRect):
             pygame.draw.rect(surface, self.active_color, (self.x, self.y, self.width, self.height), width=width)
         else:
             pygame.draw.rect(surface, self.curr_color, (self.x, self.y, self.width, self.height), width=width)
+
+
+class ShopButton(Button):
+    def __init__(self, x, y, w, h, text='Buy', color_of_article=(0, 255, 0), color_of_selected_article=(255, 0, 0)):
+        super().__init__(x, y, color_of_article, color_of_selected_article)
+        self.width, self.height = w, h
+        self.text = text
+
+    def render(self, surface):
+        font = pygame.font.SysFont('Jokerman', 48)
+        mouse_pos = pygame.mouse.get_pos()
+
+        if self.x < mouse_pos[0] < self.x + self.width and self.y < mouse_pos[1] < self.y + 70:
+            pygame.draw.rect(surface, self.color_of_selected_article, (self.x, self.y, self.width, 70), border_radius=10)
+        else:
+            pygame.draw.rect(surface, self.color_of_article, (self.x, self.y, self.width, 70), border_radius=10)
+        surface.blit(font.render(self.text, 1, (255, 255, 255)), (self.x + 50, self.y - 10))
+
+    def is_selected(self):
+        mouse_pos = pygame.mouse.get_pos()
+        if self.x < mouse_pos[0] < self.x + self.width and self.y < mouse_pos[1] < self.y + 70:
+            return True
+        return False

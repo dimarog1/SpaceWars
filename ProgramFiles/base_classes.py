@@ -141,8 +141,9 @@ class SecondBg(FirstBg):
 
 # кнопки
 class Button:
-    def __init__(self, x, y):
+    def __init__(self, x, y, color_of_article=(0, 255, 0), color_of_selected_article=(255, 0, 0)):
         self.x, self.y = x, y
+        self.color_of_article, self.color_of_selected_article = color_of_article, color_of_selected_article
 
     def is_selected(self):
         mouse_pos = pygame.mouse.get_pos()
@@ -160,6 +161,13 @@ class Button:
         else:
             self.selected = True
 
+    def is_clicked(self):
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_btn_clicked = pygame.mouse.get_pressed()
+        if self.x < mouse_pos[0] < self.x + self.width and self.y < mouse_pos[1] < self.y + 70 and mouse_btn_clicked[0] == 1:
+            return True
+        return False
+
 
 class BoxAndRect:
     def __init__(self, x, y, w, h, active_color=(255, 0, 0), inactive_color=(0, 255, 0)):
@@ -168,13 +176,3 @@ class BoxAndRect:
         self.active_color, self.inactive_color = active_color, inactive_color
         self.active = False
         self.curr_color = None
-
-    # def update(self):
-    #     mouse_pos = pygame.mouse.get_pos()
-    #     mouse_btn_clicked = pygame.mouse.get_pressed()
-    #     if mouse_btn_clicked[0] == 1:
-    #         if self.x < mouse_pos[0] < self.x + self.width and self.y < mouse_pos[1] < self.y + self.height:
-    #             self.active = True
-    #         else:
-    #             self.active = False
-    #         self.curr_color = self.active_color if self.active else self.inactive_color
