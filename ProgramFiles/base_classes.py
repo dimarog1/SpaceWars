@@ -3,20 +3,33 @@ from music.sounds import boom_sound, selected_btn_sound
 
 from ProgramFiles.consts import *
 
-# pygame.mixer.init()
+
+pygame.mixer.init()
 
 # !!! SPRITES GROUPS !!!
+
+# Все спрайты
 all_sprites = pygame.sprite.Group()
 
+# Группы игрока и врагов
 player_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 
+# Группы выстрелов
 all_shots_group = pygame.sprite.Group()
 player_shots_group = pygame.sprite.Group()
 enemy_shots_group = pygame.sprite.Group()
 
+# Группа усилений
+gains_group = pygame.sprite.Group()
+
+# Щит
+shield_group = pygame.sprite.Group()
+
+# Группа взрывов
 boom_group = pygame.sprite.Group()
 
+# Группа заднего фона
 bg_group = pygame.sprite.Group()
 
 
@@ -37,8 +50,9 @@ def load_image(name, colorkey=None):
 
 
 class Ship(pygame.sprite.Sprite):
-    def __init__(self, position):
+    def __init__(self, screen, position):
         super().__init__(all_sprites)
+        self.screen = screen
         self.image = pygame.transform.scale(load_image('player.png'), (100, 100))
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
@@ -56,7 +70,7 @@ class Ship(pygame.sprite.Sprite):
             )
 
     def check_alive(self):
-        # Проверяем количество hp
+        # Проверяем количство hp
         if self.hp <= 0:
             self.kill()
             boom = BoomSprite(self)
@@ -83,6 +97,42 @@ class Projectile(pygame.sprite.Sprite):
             self.parent_ship.rect.y - self.height
         )
         self.speed_of_shot = 10
+
+    def set_angle_of_projectile(self, angle):
+        self.image = pygame.transform.rotate(self.image, 30)
+        self.mask = pygame.mask.from_surface(self.image)
+
+
+# Усиление
+class Gain(pygame.sprite.Sprite):
+    def __init__(self, parent_ship):
+        super().__init__(gains_group)
+        self.parent_ship = parent_ship
+        self.image = pygame.transform.scale(load_image('shot.png'), (40, 40))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.rect = self.image.get_rect().move(
+            self.parent_ship.rect.x + (self.parent_ship.width - self.width) // 2,
+            self.parent_ship.rect.y + (self.parent_ship.height - self.height) // 2,
+        )
+        self.speed = 2
+
+    def improve(self, player):
+        pass
+
+    def update(self):
+        for player in player_group:
+            if pygame.sprite.collide_mask(self, player):
+                self.improve(player)
+                self.kill()
+                return
+
+        # Перемщение снаряда
+        if self.rect.y + self.speed <= HEIGHT + self.height:
+            self.rect.y += self.speed
+        else:
+            self.kill()
 
 
 # Анимация взрыва
