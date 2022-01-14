@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import sys
 from itertools import cycle
 
 from ProgramFiles.buttons import *
@@ -10,7 +11,7 @@ from music.sounds import boom_sound, shoot_sound, btn_sound, fon_sound
 
 def terminate():
     pygame.quit()
-    exit(0)
+    sys.exit(0)
 
 
 def select_name_of_wave(level, wave):
@@ -333,6 +334,7 @@ def start_player_ship():
         player_group.draw(SCREEN)
         enemy_group.draw(SCREEN)
         boom_group.draw(SCREEN)
+        hearts_group.draw(SCREEN)
         pygame.display.flip()
 
 
@@ -353,7 +355,7 @@ def start_enemy_wave(wave, count):
     R = 700
     for enemy_info in wave:
         if enemy_info != 0:
-            enemy = enemies_id[enemy_info](SCREEN)
+            enemy = enemies_id[enemy_info](SCREEN, player)
             territory = (R - L) * ships_territory
             x = L + territory * k + (territory - enemy.width) // 2
             y = -150
@@ -403,6 +405,7 @@ def start_enemy_wave(wave, count):
         gains_group.draw(SCREEN)
         display_text(SCREEN, count, WIDTH // 2 - len(count) * 22,
                      HEIGHT // 2 - 100, font_size=100, color=pygame.Color('red'))
+        hearts_group.draw(SCREEN)
         pygame.display.flip()
     return enemies
 
@@ -453,6 +456,7 @@ def replace_ship(ship, change_y):
         shield_group.draw(SCREEN)
         gains_group.update()
         boom_group.draw(SCREEN)
+        hearts_group.draw(SCREEN)
         pygame.display.flip()
 
 
@@ -475,6 +479,7 @@ def third_boss_attack(enemy_reinforcement, enemy, count):
                 unit.shooting = True
         unit.draw_hp_bar()
     enemy_reinforcement.draw(SCREEN)
+    hearts_group.draw(SCREEN)
 
 
 def main():
@@ -534,13 +539,18 @@ def main():
 
         for enemy in enemy_group:
             if isinstance(enemy, Boss):
-                if enemy.hp in range(2375, 2400) or enemy.hp in range(1575, 1600) or enemy.hp in range(975, 1000):
+                part1 = int(enemy.max_hp * 0.75)
+                part2 = int(enemy.max_hp * 0.50)
+                part3 = int(enemy.max_hp * 0.25)
+                if enemy.hp in range(part1 - 30, part1) \
+                        or enemy.hp in range(part2 - 30, part2) \
+                        or enemy.hp in range(part3 - 30, part3):
                     enemy.attack_type = 3
                     enemy.plug = 1
                     enemy.hp -= 30
                     enemy.doing_third_attack = True
                     replace_ship(enemy, -2)
-                    enemy_reinforcement = start_enemy_wave(random.choice(enemy.waves), "ПОДКРЕПЛЕНИЕ")
+                    enemy_reinforcement = start_enemy_wave(enemy.third_attack(), "ПОДКРЕПЛЕНИЕ")
 
                 if count % enemy.attack_intervals == 0 and not enemy.doing_third_attack:
                     if enemy.plug == 0:
@@ -565,7 +575,7 @@ def main():
         for enemy in enemy_group:
             enemy.check_alive()
             if pygame.sprite.collide_mask(player, enemy):
-                player.hp -= 1
+                player.reduce_hp()
         for pl in player_group:
             pl.check_alive()
 
@@ -590,6 +600,7 @@ def main():
         shield_group.draw(SCREEN)
         gains_group.update()
         boom_group.draw(SCREEN)
+        hearts_group.draw(SCREEN)
         pygame.display.flip()
         count += 1
 

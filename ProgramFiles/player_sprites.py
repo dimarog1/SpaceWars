@@ -9,12 +9,19 @@ class Player(Ship, pygame.sprite.Sprite):
         self.image = pygame.transform.scale(load_image('player.png'), (100, 100))
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(WIDTH // 2 - self.width // 2, HEIGHT + 10)
-        self.hp = 100000
+        self.hp = 3
+        self.hp_sprites = [Heart() for _ in range(self.hp)]
         self.speed_of_shooting = 30
         self.projectiles = (PlayerProjectileLevelOne, PlayerProjectileLevelTwo,
                             PlayerProjectileLevelThree, PlayerProjectileLevelFour)
         self.level_of_projectiles = 1
         self.projectile = self.projectiles[self.level_of_projectiles - 1]
+
+    def reduce_hp(self):
+        self.hp -= 1
+        if len(self.hp_sprites) > 0:
+            self.hp_sprites[-1].kill()
+            del self.hp_sprites[-1]
 
     def starting_ship(self):
         if self.rect.y >= HEIGHT - 130:
@@ -184,3 +191,13 @@ class PlayerProjectileLevelFour(PlayerProjectile):
             self.parent_ship.rect.y - self.height
         )
         self.damage = 25
+
+
+# Сердечки
+class Heart(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(hearts_group)
+        self.image = pygame.transform.scale(load_image('heart.png'), (25, 25))
+        self.height = self.image.get_height()
+        self.width = self.image.get_width()
+        self.rect = self.image.get_rect().move(20 + (self.width + 10) * (len(hearts_group) - 1), HEIGHT - self.height - 15)

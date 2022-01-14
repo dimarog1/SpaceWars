@@ -15,6 +15,9 @@ all_sprites = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 
+# Сердечки
+hearts_group = pygame.sprite.Group()
+
 # Группы выстрелов
 all_shots_group = pygame.sprite.Group()
 player_shots_group = pygame.sprite.Group()
