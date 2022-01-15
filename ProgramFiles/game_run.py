@@ -47,11 +47,12 @@ cur = con.cursor()
 loudness = cur.execute("""SELECT music_sound, music_effects_sound FROM volume_values""")
 bindings = con.cursor().execute("""SELECT Key_up, Key_down, Key_right, Key_left FROM key_bindings""")
 ships_characteristic = con.cursor().execute("""SELECT price, size, damage FROM shop""")
-SCORE = con.cursor().execute("""SELECT * FROM score""")
+points = con.cursor().execute("""SELECT * FROM score""")
 
 loud_of_menu_music, loud_of_effects = map(float, *loudness)
 KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT = map(int, *bindings)
 ship1_characteristics, ship2_characteristics, ship3_characteristics = list(ships_characteristic)
+score_in_the_shop = list(*points)
 
 first_bg = FirstBg()
 second_bg = SecondBg()
@@ -732,7 +733,7 @@ def shop():
     shop_surface.blit(ship2, (380, 100))
     shop_surface.blit(ship3, (690, 120))
 
-    display_text(shop_surface, 'SCORE: {}'.format(*list(*SCORE)), 600, 10)
+    display_text(shop_surface, 'SCORE: {}'.format(*score_in_the_shop), 600, 10)
 
     display_text(shop_surface, 'Price: {}'.format(ship1_characteristics[0]), 50, 250, font_size)
     display_text(shop_surface, 'Price: {}'.format(ship2_characteristics[0]), 370, 250, font_size)
