@@ -4,6 +4,7 @@ import pygame.rect
 
 from ProgramFiles.base_classes import *
 from ProgramFiles.player_sprites import ShotSpeedGain, ShotRangeGain, ShieldGain
+from music.sounds import shoot_sound, boss_second_attack_sound
 
 
 # --- Враги ---
@@ -57,6 +58,7 @@ class Enemy(Ship, pygame.sprite.Sprite):
 
     def shoot(self):
         enemy_shot = self.projectile(self)
+        shoot_sound.play()
 
     def update(self):
         if self.border <= self.rect.x + self.speed_of_ship <= WIDTH - self.width - self.border:
@@ -216,6 +218,7 @@ class Boss(Enemy):
             return
         if count % self.shoots_interval == 0:
             angles = (120, 150, 180, 210, 240)
+            boss_second_attack_sound.play()
             for angle in angles:
                 projectile = self.projectile_second_attack(self, angle)
         self.attack_duration -= 1
@@ -368,10 +371,12 @@ class HpBar:
         self.y1 = self.parent.rect.y + self.parent.height + 5
         pygame.draw.rect(self.screen, self.color, (self.x1, self.y1,
                                            self.w * (self.parent.hp / self.max_hp), self.h))
+
+
 # враг в меню
 class SecretEnemy(Enemy):
-    def __init__(self):
-        Enemy.__init__(self)
+    def __init__(self, screen):
+        Enemy.__init__(self, screen)
         self.image = pygame.transform.scale(load_image('secret_enemy.png'), (170, 200))
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()

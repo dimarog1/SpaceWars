@@ -9,7 +9,7 @@ class Player(Ship, pygame.sprite.Sprite):
         self.image = pygame.transform.scale(load_image('player.png'), (100, 100))
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(WIDTH // 2 - self.width // 2, HEIGHT + 10)
-        self.hp = 100000
+        self.hp = 10000
         self.speed_of_shooting = 30
         self.projectiles = (PlayerProjectileLevelOne, PlayerProjectileLevelTwo,
                             PlayerProjectileLevelThree, PlayerProjectileLevelFour)

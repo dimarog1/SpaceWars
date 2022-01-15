@@ -1,5 +1,5 @@
 import os
-from music.sounds import boom_sound, selected_btn_sound
+from music.sounds import boom_sound, selected_btn_sound, gained_bonus_sound
 
 from ProgramFiles.consts import *
 
@@ -124,6 +124,7 @@ class Gain(pygame.sprite.Sprite):
     def update(self):
         for player in player_group:
             if pygame.sprite.collide_mask(self, player):
+                gained_bonus_sound.play()
                 self.improve(player)
                 self.kill()
                 return

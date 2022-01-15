@@ -1,16 +1,17 @@
 import json
 import sqlite3
+import sys
 from itertools import cycle
 
 from ProgramFiles.buttons import *
 from ProgramFiles.enemy_sprites import *
 from ProgramFiles.player_sprites import *
-from music.sounds import boom_sound, shoot_sound, btn_sound, fon_sound, selected_btn_sound, game_over_sound
+from music.sounds import boom_sound, shoot_sound, btn_sound, fon_sound, selected_btn_sound, game_over_sound, boss_second_attack_sound
 
 
 def terminate():
     pygame.quit()
-    exit(0)
+    sys.exit(0)
 
 
 def select_name_of_wave(level, wave):
@@ -39,18 +40,16 @@ def move_enemies(enemies):
 pygame.init()
 pygame.mixer.init()
 SCREEN = pygame.display.set_mode(SIZE)
-SCORE = 0
 
 con = sqlite3.connect('settings.db')
 cur = con.cursor()
-cur1 = con.cursor()
-cur2 = con.cursor()
 
-loud = cur.execute("""SELECT music_sound, music_effects_sound FROM volume_values""")
-bindings = cur1.execute("""SELECT Key_up, Key_down, Key_right, Key_left FROM key_bindings""")
-ships_characteristic = cur2.execute("""SELECT price, size, damage FROM shop""")
+loudness = cur.execute("""SELECT music_sound, music_effects_sound FROM volume_values""")
+bindings = con.cursor().execute("""SELECT Key_up, Key_down, Key_right, Key_left FROM key_bindings""")
+ships_characteristic = con.cursor().execute("""SELECT price, size, damage FROM shop""")
+SCORE = con.cursor().execute("""SELECT * FROM score""")
 
-loud_of_menu_music, loud_of_effects = map(float, *loud)
+loud_of_menu_music, loud_of_effects = map(float, *loudness)
 KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT = map(int, *bindings)
 ship1_characteristics, ship2_characteristics, ship3_characteristics = list(ships_characteristic)
 
@@ -62,10 +61,14 @@ GAME_TITLE_IMG = pygame.transform.scale(load_image('game_title.png', -1), (300, 
 shoot_sound.set_volume(loud_of_effects)
 boom_sound.set_volume(loud_of_effects)
 game_over_sound.set_volume(loud_of_effects)
+gained_bonus_sound.set_volume(loud_of_effects)
+boss_second_attack_sound.set_volume(loud_of_effects)
 fon_sound.set_volume(loud_of_menu_music)
 btn_sound.set_volume(loud_of_menu_music)
 selected_btn_sound.set_volume(loud_of_menu_music)
-dx = dy = 0
+
+
+dx, dy = 0, 0
 k_up_clicked = False
 k_right_clicked = False
 k_down_clicked = False
@@ -112,9 +115,9 @@ def menu():
     enemy_level_two_img = pygame.transform.scale(load_image('enemy_level_two.png'), (90, 90))
     enemy_level_four_img = pygame.transform.scale(load_image('enemy_level_four.png'), (130, 130))
 
-    background_enemies = [EnemyLevelFour(), EnemyLevelTwo(), EnemyLevelTwo(), EnemyLevelTwo(),
-                          EnemyLevelTwo(), EnemyLevelTwo()]
-    secret_enemy = SecretEnemy()
+    background_enemies = [EnemyLevelFour(SCREEN), EnemyLevelTwo(SCREEN), EnemyLevelTwo(SCREEN), EnemyLevelTwo(SCREEN),
+                          EnemyLevelTwo(SCREEN), EnemyLevelTwo(SCREEN)]
+    secret_enemy = SecretEnemy(SCREEN)
     secret_enemy.set_start_pos(350, 850)
 
     x = 125
@@ -330,6 +333,7 @@ def settings():
             shoot_sound.set_volume(loud_of_effects)
             boom_sound.set_volume(loud_of_effects)
             game_over_sound.set_volume(loud_of_effects)
+            gained_bonus_sound.set_volume(loud_of_effects)
             fon_sound.set_volume(loud_of_menu_music)
             btn_sound.set_volume(loud_of_menu_music)
             selected_btn_sound.set_volume(loud_of_menu_music)
@@ -520,7 +524,7 @@ def third_boss_attack(enemy_reinforcement, enemy, count):
 
 
 def main():
-    global player, dx, dy
+    global player, dx, dy, SCORE
     pygame.display.set_caption(GAME_TITLE)
     clock = pygame.time.Clock()
 
@@ -554,10 +558,10 @@ def main():
                 enemies_of_wave = start_enemy_wave(waves[0], name_of_wave)
                 del waves[0]
             else:
+                cur.execute("""UPDATE score
+                                                SET SCORE = ?""", (SCORE,))
+                con.commit()
                 running = False
-                # !!! Добавление SCORE в бд !!!
-                # SCORE.добавить в бд
-                # !!! Добавление SCORE в бд !!!
 
         # Передвижение игрока и врагов
         for event in pygame.event.get():
@@ -608,6 +612,7 @@ def main():
             enemy.check_alive()
             if pygame.sprite.collide_mask(player, enemy):
                 player.hp = 0
+
         for pl in player_group:
             pl.check_alive()
 
@@ -718,7 +723,7 @@ def shop():
     shop_surface.blit(ship2, (380, 100))
     shop_surface.blit(ship3, (690, 120))
 
-    display_text(shop_surface, 'SCORE: {}', 600, 10)
+    display_text(shop_surface, 'SCORE: {}'.format(*list(*SCORE)), 600, 10)
 
     display_text(shop_surface, 'Price: {}'.format(ship1_characteristics[0]), 50, 250, font_size)
     display_text(shop_surface, 'Price: {}'.format(ship2_characteristics[0]), 370, 250, font_size)
@@ -756,7 +761,10 @@ def shop():
 
 
 def game_over():
+    global dx, dy, k_up_clicked, k_right_clicked, k_down_clicked, k_left_clicked
+
     game_over_surface = pygame.Surface(SIZE)
+    game_over_img = pygame.transform.scale(load_image('game_over.png', -1), (300, 200))
     game_over_surface.set_alpha(30)
 
     font = pygame.font.SysFont('Jokerman', 40)
@@ -767,24 +775,29 @@ def game_over():
     is_running = True
 
     game_over_sound.play()
-    display_text(game_over_surface, 'You`ve lost', 300, 100, 70, draw_in_the_middle=True)
 
     while is_running:
         SCREEN.blit(game_over_surface, (0, 0))
+        SCREEN.blit(game_over_img, (250, 50))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
 
         if retry_btn.is_clicked():
+            k_up_clicked = False
+            k_right_clicked = False
+            k_down_clicked = False
+            k_left_clicked = False
+            dx, dy = 0, 0
             game_over_sound.stop()
             btn_sound.play()
             delete_all_sprites()
             main()
 
         if back_to_menu_btn.is_clicked():
+            dx, dy = 0, 0
             game_over_sound.stop()
             btn_sound.play()
-            pygame.time.delay(200)
             delete_all_sprites()
             menu()
 
