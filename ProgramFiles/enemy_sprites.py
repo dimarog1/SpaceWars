@@ -49,14 +49,13 @@ class Enemy(Ship, pygame.sprite.Sprite):
             boom_sound.play()
 
     def spawn_gain(self):
-        do_spawn_gain = random.choices((True, False), weights=[self.chance, 100 - self.chance])[0]
+        do_spawn_gain = random.choices((True, False), weights=[self.chance + self.player.luck, 100 - self.chance])[0]
         flag = True
         if do_spawn_gain:
             while flag:
                 if len(shield_group) >= 1 and self.player.speed_of_shooting == 10 and self.player.level_of_projectiles == 4:
                     return
                 gain = random.choice(self.gains)(self)
-                print(flag)
                 if len(shield_group) >= 1 and isinstance(gain, ShieldGain):
                     gain.kill()
                     continue
@@ -165,13 +164,12 @@ class Boss(Enemy):
 
         # Пераметры для третьей атаки
         self.doing_third_attack = False
-        self.waves = (
-            [1, 3, 1],
+        self.waves = [
             [2, 3, 2],
-            [1, 4, 1],
             [2, 4, 2],
             [3, 4, 3],
-        )
+        ]
+        self.count_of_third_attack = 0
 
     def choose_attack(self):
         self.attack_points = [(random.randint(50, 650), random.randint(10, 200)), 0, 0]
@@ -234,7 +232,9 @@ class Boss(Enemy):
         self.attack_duration -= 1
 
     def third_attack(self):
-        return random.choice(self.waves)
+        wave = self.waves[self.count_of_third_attack]
+        self.count_of_third_attack += 1
+        return wave
 
 
 # --- Выстрел ---

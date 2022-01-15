@@ -1,21 +1,26 @@
+import sqlite3
+
 from ProgramFiles.base_classes import *
 
 
 # Игрок
 class Player(Ship, pygame.sprite.Sprite):
-    def __init__(self, screen, position=(0, 0)):
+    def __init__(self, screen, size, damage, speed_of_shooting, speed_of_ship, hp, luck, image, position=(0, 0)):
         Ship.__init__(self, screen, position)
         pygame.sprite.Sprite.__init__(self, player_group)
-        self.image = pygame.transform.scale(load_image('player.png'), (100, 100))
+        self.image = pygame.transform.scale(load_image(image), (int(size.split()[0]), int(size.split()[1])))
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(WIDTH // 2 - self.width // 2, HEIGHT + 10)
-        self.hp = 3
+        self.damage = damage
+        self.hp = hp
+        self.speed_of_ship = speed_of_ship
         self.hp_sprites = [Heart() for _ in range(self.hp)]
-        self.speed_of_shooting = 30
+        self.speed_of_shooting = speed_of_shooting
         self.projectiles = (PlayerProjectileLevelOne, PlayerProjectileLevelTwo,
                             PlayerProjectileLevelThree, PlayerProjectileLevelFour)
         self.level_of_projectiles = 1
         self.projectile = self.projectiles[self.level_of_projectiles - 1]
+        self.luck = luck
 
     def reduce_hp(self):
         self.hp -= 1
@@ -142,7 +147,7 @@ class PlayerProjectileLevelOne(PlayerProjectile):
         PlayerProjectile.__init__(self, parent_ship)
         self.image = pygame.transform.scale(load_image('shot.png'), (17, 27))
         self.mask = pygame.mask.from_surface(self.image)
-        self.damage = 10
+        self.damage = self.parent_ship.damage * 1
 
 
 # Выстрел игрока 2 lvl
@@ -158,7 +163,7 @@ class PlayerProjectileLevelTwo(PlayerProjectile):
             self.parent_ship.rect.x + self.parent_ship.width // 2 - self.width // 2,
             self.parent_ship.rect.y - self.height
         )
-        self.damage = 15
+        self.damage = self.parent_ship.damage * 2
 
 
 # Выстрел игрока 3 lvl
@@ -174,7 +179,7 @@ class PlayerProjectileLevelThree(PlayerProjectile):
             self.parent_ship.rect.x + self.parent_ship.width // 2 - self.width // 2,
             self.parent_ship.rect.y - self.height
         )
-        self.damage = 20
+        self.damage = self.parent_ship.damage * 3
 
 
 # Выстрел игрока 4 lvl
@@ -190,7 +195,7 @@ class PlayerProjectileLevelFour(PlayerProjectile):
             self.parent_ship.rect.x + self.parent_ship.width // 2 - self.width // 2,
             self.parent_ship.rect.y - self.height
         )
-        self.damage = 25
+        self.damage = self.parent_ship.damage * 4
 
 
 # Сердечки

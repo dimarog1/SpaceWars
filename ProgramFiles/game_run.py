@@ -3,6 +3,8 @@ import sqlite3
 import sys
 from itertools import cycle
 
+import stats as stats
+
 from ProgramFiles.buttons import *
 from ProgramFiles.enemy_sprites import *
 from ProgramFiles.player_sprites import *
@@ -46,12 +48,18 @@ cur = con.cursor()
 
 loudness = cur.execute("""SELECT music_sound, music_effects_sound FROM volume_values""")
 bindings = con.cursor().execute("""SELECT Key_up, Key_down, Key_right, Key_left FROM key_bindings""")
-ships_characteristic = con.cursor().execute("""SELECT price, size, damage FROM shop""")
-SCORE = con.cursor().execute("""SELECT * FROM score""")
+player_stats = con.cursor().execute("""SELECT size, damage, speed_of_shooting,
+                                    speed_of_ship, hp, luck, image FROM current_ship_stats""")
+ships_characteristic = con.cursor().execute("""SELECT price, size, damage, speed_of_shooting, 
+                                                speed_of_ship, hp, luck FROM shop""")
+
+SCORE = con.cursor().execute("""SELECT SCORE FROM score""")
+SCORE = list(*SCORE)[0]
+player_stats = list(*player_stats)
 
 loud_of_menu_music, loud_of_effects = map(float, *loudness)
 KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT = map(int, *bindings)
-ship1_characteristics, ship2_characteristics, ship3_characteristics = list(ships_characteristic)
+ship1_characteristics, ship2_characteristics, ship3_characteristics, ship4_characteristics = list(ships_characteristic)
 
 first_bg = FirstBg()
 second_bg = SecondBg()
@@ -542,7 +550,7 @@ def main():
         else:
             SCORE = level[wave]
 
-    player = Player(SCREEN)
+    player = Player(SCREEN, *player_stats)
     count = 1
 
     # Выпуск корабля игрока
@@ -587,12 +595,12 @@ def main():
                 part1 = int(enemy.max_hp * 0.75)
                 part2 = int(enemy.max_hp * 0.50)
                 part3 = int(enemy.max_hp * 0.25)
-                if enemy.hp in range(part1 - 30, part1) \
-                        or enemy.hp in range(part2 - 30, part2) \
-                        or enemy.hp in range(part3 - 30, part3):
+                if enemy.hp in range(part1 - 50, part1) \
+                        or enemy.hp in range(part2 - 50, part2) \
+                        or enemy.hp in range(part3 - 50, part3):
                     enemy.attack_type = 3
                     enemy.plug = 1
-                    enemy.hp -= 30
+                    enemy.hp -= 50
                     enemy.doing_third_attack = True
                     replace_ship(enemy, -2)
                     enemy_reinforcement = start_enemy_wave(enemy.third_attack(), "ПОДКРЕПЛЕНИЕ")
@@ -718,31 +726,32 @@ def shop():
     shop_surface = pygame.Surface(SIZE)
     font_size = 30
 
-    ship1 = pygame.transform.scale(load_image('player_from_shop1.png'), (100, 100))
-    ship2 = pygame.transform.scale(load_image('player_from_shop2.png'), (100, 100))
-    ship3 = pygame.transform.scale(load_image('player_from_shop3.png'), (70, 70))
+    ship1 = pygame.transform.scale(load_image('player.png'), (100, 100))
+    ship2 = pygame.transform.scale(load_image('player_from_shop1.png'), (100, 100))
+    ship3 = pygame.transform.scale(load_image('player_from_shop2.png'), (100, 100))
+    ship4 = pygame.transform.scale(load_image('player_from_shop3.png'), (70, 70))
 
     buy_btn = ShopButton(300, 700, 200, 20)
 
-    rects = [AnimatedRect(50, 90, ship1.get_width() + 20, ship1.get_height() + 30),
-             AnimatedRect(370, 90, ship2.get_width() + 20, ship2.get_height() + 30),
-             AnimatedRect(665, 90, ship3.get_width() + 50, ship3.get_height() + 60)]
+    rects = [AnimatedRect(50, 90, ship2.get_width() + 20, ship1.get_height() + 30),
+             AnimatedRect(240, 90, ship2.get_width() + 20, ship2.get_height() + 30),
+             AnimatedRect(430, 90, ship3.get_width() + 20, ship3.get_height() + 30),
+             AnimatedRect(610, 90, ship4.get_width() + 50, ship4.get_height() + 60)]
 
     shop_surface.blit(ship1, (60, 100))
-    shop_surface.blit(ship2, (380, 100))
-    shop_surface.blit(ship3, (690, 120))
+    shop_surface.blit(ship2, (250, 100))
+    shop_surface.blit(ship3, (440, 100))
+    shop_surface.blit(ship4, (635, 120))
 
-    display_text(shop_surface, 'SCORE: {}'.format(*list(*SCORE)), 600, 10)
+    display_text(shop_surface, 'SCORE: {}'.format(SCORE), 600, 10)
 
-    display_text(shop_surface, 'Price: {}'.format(ship1_characteristics[0]), 50, 250, font_size)
-    display_text(shop_surface, 'Price: {}'.format(ship2_characteristics[0]), 370, 250, font_size)
-    display_text(shop_surface, 'Price: {}'.format(ship3_characteristics[0]), 670, 250, font_size)
-    display_text(shop_surface, 'Size: {}'.format(ship1_characteristics[1]), 50, 300, font_size)
-    display_text(shop_surface, 'Size: {}'.format(ship2_characteristics[1]), 370, 300, font_size)
-    display_text(shop_surface, 'Size: {}'.format(ship3_characteristics[1]), 670, 300, font_size)
-    display_text(shop_surface, 'Damage: {}'.format(ship1_characteristics[2]), 50, 350, font_size)
-    display_text(shop_surface, 'Damage: {}'.format(ship2_characteristics[2]), 370, 350, font_size)
-    display_text(shop_surface, 'Damage {}'.format(ship3_characteristics[2]), 670, 350, font_size)
+    titles = ['Price', 'Size', 'Damage', 'Shots speed', 'Ship speed', 'HP', 'Luck']
+    for i in range(len(ship1_characteristics)):
+
+        display_text(shop_surface, f'{titles[i]}: {ship1_characteristics[i]}', 50, 250 + i * 50, font_size)
+        display_text(shop_surface, f'{titles[i]}: {ship2_characteristics[i]}', 240, 250 + i * 50, font_size)
+        display_text(shop_surface, f'{titles[i]}: {ship3_characteristics[i]}', 430, 250 + i * 50, font_size)
+        display_text(shop_surface, f'{titles[i]}: {ship4_characteristics[i]}', 610, 250 + i * 50, font_size)
 
     is_running = True
     while is_running:
