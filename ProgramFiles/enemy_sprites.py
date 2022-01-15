@@ -388,8 +388,8 @@ class HpBar:
 
 # враг в меню
 class SecretEnemy(Enemy):
-    def __init__(self, screen):
-        Enemy.__init__(self, screen)
+    def __init__(self, screen, player):
+        Enemy.__init__(self, screen, player)
         self.image = pygame.transform.scale(load_image('secret_enemy.png'), (170, 200))
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()

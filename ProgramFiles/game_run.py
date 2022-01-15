@@ -115,9 +115,9 @@ def menu():
     enemy_level_two_img = pygame.transform.scale(load_image('enemy_level_two.png'), (90, 90))
     enemy_level_four_img = pygame.transform.scale(load_image('enemy_level_four.png'), (130, 130))
 
-    background_enemies = [EnemyLevelFour(SCREEN), EnemyLevelTwo(SCREEN), EnemyLevelTwo(SCREEN), EnemyLevelTwo(SCREEN),
-                          EnemyLevelTwo(SCREEN), EnemyLevelTwo(SCREEN)]
-    secret_enemy = SecretEnemy(SCREEN)
+    background_enemies = [EnemyLevelFour(SCREEN, Player), EnemyLevelTwo(SCREEN, Player), EnemyLevelTwo(SCREEN, Player), EnemyLevelTwo(SCREEN, Player),
+                          EnemyLevelTwo(SCREEN, Player), EnemyLevelTwo(SCREEN, Player)]
+    secret_enemy = SecretEnemy(SCREEN, Player)
     secret_enemy.set_start_pos(350, 850)
 
     x = 125
