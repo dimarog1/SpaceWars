@@ -529,7 +529,7 @@ def third_boss_attack(enemy_reinforcement, enemy, count):
 
 
 def main():
-    global player, dx, dy
+    global player, dx, dy, score_in_the_shop
     pygame.display.set_caption(GAME_TITLE)
     clock = pygame.time.Clock()
 
@@ -541,7 +541,7 @@ def main():
         if wave != "SCORE":
             waves.append(level[wave])
         else:
-            SCORE = level[wave]
+            score_in_the_shop = level[wave]
 
     player = Player(SCREEN)
     count = 1
@@ -563,8 +563,9 @@ def main():
                 enemies_of_wave = start_enemy_wave(waves[0], name_of_wave)
                 del waves[0]
             else:
+                print(score_in_the_shop)
                 cur.execute("""UPDATE score
-                                                SET SCORE = ?""", (SCORE,))
+                                                SET SCORE = ?""", (score_in_the_shop,))
                 con.commit()
                 running = False
 
