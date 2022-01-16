@@ -1,10 +1,8 @@
 import json
-import sqlite3
 import sys
 from itertools import cycle
 
 import pygame.font
-import stats as stats
 
 from ProgramFiles.buttons import *
 from ProgramFiles.enemy_sprites import *
@@ -87,7 +85,6 @@ fon_sound.set_volume(loud_of_menu_music)
 btn_sound.set_volume(loud_of_menu_music)
 selected_btn_sound.set_volume(loud_of_menu_music)
 
-
 dx, dy = 0, 0
 k_up_clicked = False
 k_right_clicked = False
@@ -135,7 +132,8 @@ def menu():
     enemy_level_two_img = pygame.transform.scale(load_image('enemy_level_two.png'), (90, 90))
     enemy_level_four_img = pygame.transform.scale(load_image('enemy_level_four.png'), (130, 130))
 
-    background_enemies = [EnemyLevelFour(SCREEN, Player), EnemyLevelTwo(SCREEN, Player), EnemyLevelTwo(SCREEN, Player), EnemyLevelTwo(SCREEN, Player),
+    background_enemies = [EnemyLevelFour(SCREEN, Player), EnemyLevelTwo(SCREEN, Player), EnemyLevelTwo(SCREEN, Player),
+                          EnemyLevelTwo(SCREEN, Player),
                           EnemyLevelTwo(SCREEN, Player), EnemyLevelTwo(SCREEN, Player)]
     secret_enemy = SecretEnemy(SCREEN, Player)
     secret_enemy.set_start_pos(350, 850)
@@ -260,8 +258,8 @@ def start_screen():
                     btn_sound.play()
                     return
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if intro_rect.x < event.pos[0] < intro_rect.x + intro_rect.width\
-                        and intro_rect.y < event.pos[1] < intro_rect.height + intro_rect.y:
+                if intro_rect.x < event.pos[0] < intro_rect.x + intro_rect.width \
+                    and intro_rect.y < event.pos[1] < intro_rect.height + intro_rect.y:
                     btn_sound.play()
                     return
             elif event.type == blink_event:
@@ -615,8 +613,8 @@ def main():
                 part2 = int(enemy.max_hp * 0.50)
                 part3 = int(enemy.max_hp * 0.25)
                 if enemy.hp in range(part1 - 50, part1) \
-                        or enemy.hp in range(part2 - 50, part2) \
-                        or enemy.hp in range(part3 - 50, part3):
+                    or enemy.hp in range(part2 - 50, part2) \
+                    or enemy.hp in range(part3 - 50, part3):
                     enemy.attack_type = 3
                     enemy.plug = 1
                     enemy.hp -= 50
@@ -773,7 +771,6 @@ def shop():
 
     titles = ['Size', 'Damage', 'Shots speed', 'Ship speed', 'HP', 'Luck', 'Price']
     for i in range(len(ship1_characteristics)):
-
         display_text(shop_surface, f'{titles[i]}: {ship1_characteristics[i]}', 50, 250 + i * 50, font_size)
         display_text(shop_surface, f'{titles[i]}: {ship2_characteristics[i]}', 240, 250 + i * 50, font_size)
         display_text(shop_surface, f'{titles[i]}: {ship3_characteristics[i]}', 430, 250 + i * 50, font_size)
@@ -830,21 +827,45 @@ def shop():
                         btn_sound.play()
                         player_stats[:-1] = ship1_characteristics[:-1]
                         player_stats[-1] = 'player.png'
+                        cur.execute("""UPDATE current_ship_stats
+                                    SET size = ?, damage = ?, speed_of_shooting = ?,
+                                    speed_of_ship = ?, hp = ?, luck = ?, image = ?""",
+                                    (player_stats[0], player_stats[1], player_stats[2], player_stats[3],
+                                     player_stats[4], player_stats[5], player_stats[6]))
+                        con.commit()
                         return
                     if rect.id == 1 and 'player_from_shop1.png' in purchased_ships:
                         btn_sound.play()
                         player_stats[:-1] = ship2_characteristics[:-1]
                         player_stats[-1] = 'player_from_shop1.png'
+                        cur.execute("""UPDATE current_ship_stats
+                                    SET size = ?, damage = ?, speed_of_shooting = ?,
+                                    speed_of_ship = ?, hp = ?, luck = ?, image = ?""",
+                                    (player_stats[0], player_stats[1], player_stats[2], player_stats[3],
+                                     player_stats[4], player_stats[5], player_stats[6]))
+                        con.commit()
                         return
                     if rect.id == 2 and 'player_from_shop2.png' in purchased_ships:
                         btn_sound.play()
                         player_stats[:-1] = ship3_characteristics[:-1]
                         player_stats[-1] = 'player_from_shop2.png'
+                        cur.execute("""UPDATE current_ship_stats
+                                    SET size = ?, damage = ?, speed_of_shooting = ?,
+                                    speed_of_ship = ?, hp = ?, luck = ?, image = ?""",
+                                    (player_stats[0], player_stats[1], player_stats[2], player_stats[3],
+                                     player_stats[4], player_stats[5], player_stats[6]))
+                        con.commit()
                         return
                     if rect.id == 3 and 'player_from_shop3.png' in purchased_ships:
                         btn_sound.play()
                         player_stats[:-1] = ship4_characteristics[:-1]
                         player_stats[-1] = 'player_from_shop3.png'
+                        cur.execute("""UPDATE current_ship_stats
+                                    SET size = ?, damage = ?, speed_of_shooting = ?,
+                                    speed_of_ship = ?, hp = ?, luck = ?, image = ?""",
+                                    (player_stats[0], player_stats[1], player_stats[2], player_stats[3],
+                                     player_stats[4], player_stats[5], player_stats[6]))
+                        con.commit()
                         return
 
         for rect in rects:
