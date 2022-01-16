@@ -52,6 +52,7 @@ player_stats = con.cursor().execute("""SELECT size, damage, speed_of_shooting,
                                     speed_of_ship, hp, luck, image FROM current_ship_stats""")
 ships_characteristic = con.cursor().execute("""SELECT size, damage, speed_of_shooting, speed_of_ship, 
                                                 hp, luck, price FROM shop""")
+current_level = list(*con.cursor().execute("""SELECT * FROM current_level"""))
 
 SCORE = con.cursor().execute("""SELECT SCORE FROM score""")
 SCORE = list(*SCORE)[0]
@@ -171,7 +172,7 @@ def menu():
             fon_sound.stop()
             for enemy in enemy_group:
                 enemy.kill()
-            main()
+            main(*current_level)
 
         if shop_btn.is_clicked():
             btn_sound.play()
@@ -547,14 +548,14 @@ def third_boss_attack(enemy_reinforcement, enemy, count):
     hearts_group.draw(SCREEN)
 
 
-def main():
+def main(level):
     global player, dx, dy, SCORE, COUNT_OF_SHOTS, COUNT_OF_KILLED_ENEMIES
     pygame.display.set_caption(GAME_TITLE)
     clock = pygame.time.Clock()
 
     # Загрузка уровня
     waves = list()
-    with open(r'.\levels\level_one.json', 'r', encoding='utf-8') as level:
+    with open(r'{}'.format(level), 'r', encoding='utf-8') as level:
         level = json.loads(level.read())
     for wave in level:
         if wave != "SCORE":
@@ -882,7 +883,7 @@ def shop():
 
 
 def game_over():
-    global dx, dy, k_up_clicked, k_right_clicked, k_down_clicked, k_left_clicked
+    global dx, dy, k_up_clicked, k_right_clicked, k_down_clicked, k_left_clicked, current_level
 
     game_over_surface = pygame.Surface(SIZE)
     game_over_img = pygame.transform.scale(load_image('game_over.png', -1), (300, 200))
@@ -913,7 +914,7 @@ def game_over():
             game_over_sound.stop()
             btn_sound.play()
             delete_all_sprites()
-            main()
+            main(current_level)
 
         if back_to_menu_btn.is_clicked():
             dx, dy = 0, 0
@@ -945,10 +946,13 @@ def delete_all_sprites():
         boom.kill()
     for heart in hearts_group:
         heart.kill()
+    for gain in gains_group:
+        gain.kill()
 
 
 def level_completed(score):
-    global COUNT_OF_KILLED_ENEMIES, COUNT_OF_SHOTS, SCORE
+    global COUNT_OF_KILLED_ENEMIES, COUNT_OF_SHOTS, SCORE, current_level, dx, dy,\
+        k_up_clicked, k_right_clicked, k_down_clicked, k_left_clicked
 
     results_surface = pygame.Surface(SIZE)
     results_surface.set_alpha(30)
@@ -972,8 +976,22 @@ def level_completed(score):
                 terminate()
 
         if next_btn.is_clicked():
+            COUNT_OF_KILLED_ENEMIES, COUNT_OF_SHOTS = 0, 0
+            k_up_clicked = False
+            k_right_clicked = False
+            k_down_clicked = False
+            k_left_clicked = False
+            dx, dy = 0, 0
+            delete_all_sprites()
             btn_sound.play()
-            pass
+            if LEVELS:
+                level = LEVELS.pop()
+                con.cursor().execute("""UPDATE current_level SET level = ?""", (level,))
+                con.commit()
+                main(level)
+            else:
+                pass
+                # здесь должно быть финальное окно и конец игры
 
         next_btn.render(SCREEN)
         next_btn.play_sound_if_btn_selected()
