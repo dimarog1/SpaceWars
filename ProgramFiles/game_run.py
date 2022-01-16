@@ -57,7 +57,12 @@ ships_characteristic = con.cursor().execute("""SELECT size, damage, speed_of_sho
 SCORE = con.cursor().execute("""SELECT SCORE FROM score""")
 SCORE = list(*SCORE)[0]
 player_stats = list(*player_stats)
-purchased_ships = ['player.png']
+
+purchased_ships_data = con.cursor().execute("""SELECT image FROM purchased_ships""")
+purchased_ships = []
+for i in purchased_ships_data:
+    purchased_ships.append(i[0])
+print(purchased_ships)
 
 loud_of_menu_music, loud_of_effects = map(float, *loudness)
 KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT = map(int, *bindings)
@@ -572,8 +577,7 @@ def main():
                 enemies_of_wave = start_enemy_wave(waves[0], name_of_wave)
                 del waves[0]
             else:
-                cur.execute("""UPDATE score
-                                                SET SCORE = ?""", (SCORE,))
+                cur.execute("""UPDATE score SET SCORE = ?""", (SCORE,))
                 con.commit()
                 running = False
 
@@ -727,7 +731,6 @@ def display_text(surface, text, x, y, font_size=40, color=(255, 255, 255), draw_
 def shop():
     global player_stats, SCORE, purchased_ships
     print(player_stats)
-    print(ship4_characteristics)
     shop_surface = pygame.Surface(SIZE)
     font_size = 30
 
@@ -752,7 +755,6 @@ def shop():
 
     titles = ['Size', 'Damage', 'Shots speed', 'Ship speed', 'HP', 'Luck', 'Price']
     for i in range(len(ship1_characteristics)):
-
         display_text(shop_surface, f'{titles[i]}: {ship1_characteristics[i]}', 50, 250 + i * 50, font_size)
         display_text(shop_surface, f'{titles[i]}: {ship2_characteristics[i]}', 240, 250 + i * 50, font_size)
         display_text(shop_surface, f'{titles[i]}: {ship3_characteristics[i]}', 430, 250 + i * 50, font_size)
@@ -777,6 +779,7 @@ def shop():
                         player_stats[-1] = 'player_from_shop1.png'
                         SCORE -= ship2_characteristics[-1]
                         cur.execute("""UPDATE score SET SCORE = ?""", (SCORE,))
+                        cur.execute("""INSERT INTO purchased_ships(image) VALUES(?)""", (player_stats[-1],))
                         con.commit()
                         return
                     if rect.id == 2 and SCORE >= 400 and 'player_from_shop2.png' not in purchased_ships:
@@ -786,6 +789,7 @@ def shop():
                         player_stats[-1] = 'player_from_shop2.png'
                         SCORE -= ship3_characteristics[-1]
                         cur.execute("""UPDATE score SET SCORE = ?""", (SCORE,))
+                        cur.execute("""INSERT INTO purchased_ships(image) VALUES(?)""", (player_stats[-1],))
                         con.commit()
                         return
                     if rect.id == 3 and SCORE >= 600 and 'player_from_shop3.png' not in purchased_ships:
@@ -795,6 +799,7 @@ def shop():
                         player_stats[-1] = 'player_from_shop3.png'
                         SCORE -= ship4_characteristics[-1]
                         cur.execute("""UPDATE score SET SCORE = ?""", (SCORE,))
+                        cur.execute("""INSERT INTO purchased_ships(image) VALUES(?)""", (player_stats[-1],))
                         con.commit()
                         return
                     btn_sound.play()
