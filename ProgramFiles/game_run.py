@@ -9,7 +9,8 @@ import stats as stats
 from ProgramFiles.buttons import *
 from ProgramFiles.enemy_sprites import *
 from ProgramFiles.player_sprites import *
-from music.sounds import boom_sound, shoot_sound, btn_sound, fon_sound, selected_btn_sound, game_over_sound, boss_second_attack_sound
+from music.sounds import boom_sound, shoot_sound, btn_sound, fon_sound, selected_btn_sound, game_over_sound,\
+    boss_second_attack_sound, level_completed_sound
 
 
 def terminate():
@@ -58,11 +59,13 @@ SCORE = con.cursor().execute("""SELECT SCORE FROM score""")
 SCORE = list(*SCORE)[0]
 player_stats = list(*player_stats)
 
+COUNT_OF_SHOTS = 0
+COUNT_OF_KILLED_ENEMIES = 0
+
 purchased_ships_data = con.cursor().execute("""SELECT image FROM purchased_ships""")
 purchased_ships = []
 for i in purchased_ships_data:
     purchased_ships.append(i[0])
-print(purchased_ships)
 
 loud_of_menu_music, loud_of_effects = map(float, *loudness)
 KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT = map(int, *bindings)
@@ -79,6 +82,7 @@ boom_sound.set_volume(loud_of_effects)
 game_over_sound.set_volume(loud_of_effects)
 gained_bonus_sound.set_volume(loud_of_effects)
 boss_second_attack_sound.set_volume(loud_of_effects)
+level_completed_sound.set_volume(loud_of_effects)
 fon_sound.set_volume(loud_of_menu_music)
 btn_sound.set_volume(loud_of_menu_music)
 selected_btn_sound.set_volume(loud_of_menu_music)
@@ -351,6 +355,7 @@ def settings():
             boom_sound.set_volume(loud_of_effects)
             game_over_sound.set_volume(loud_of_effects)
             gained_bonus_sound.set_volume(loud_of_effects)
+            level_completed_sound.set_volume(loud_of_effects)
             fon_sound.set_volume(loud_of_menu_music)
             btn_sound.set_volume(loud_of_menu_music)
             selected_btn_sound.set_volume(loud_of_menu_music)
@@ -401,7 +406,7 @@ def start_player_ship():
 
 
 def start_enemy_wave(wave, count):
-    global dx, dy
+    global dx, dy, COUNT_OF_TAKEN_DAMAGE
     clock = pygame.time.Clock()
     enemies_id = {
         1: EnemyLevelOne,
@@ -545,7 +550,7 @@ def third_boss_attack(enemy_reinforcement, enemy, count):
 
 
 def main():
-    global player, dx, dy, SCORE
+    global player, dx, dy, SCORE, COUNT_OF_SHOTS, COUNT_OF_KILLED_ENEMIES
     pygame.display.set_caption(GAME_TITLE)
     clock = pygame.time.Clock()
 
@@ -577,13 +582,16 @@ def main():
                 enemies_of_wave = start_enemy_wave(waves[0], name_of_wave)
                 del waves[0]
             else:
+                level_score = 0
                 for wave in level:
                     if wave == 'SCORE':
-                        SCORE = level[wave]
+                        level_score = level[wave]
+                SCORE += level_score
                 cur.execute("""UPDATE score
                                         SET SCORE = ?""", (SCORE,))
                 con.commit()
                 running = False
+                level_completed(level_score)
 
         # Передвижение игрока и врагов
         for event in pygame.event.get():
@@ -596,6 +604,7 @@ def main():
         if player.alive() and count % player.speed_of_shooting == 0:
             player_shot = player.projectile(player)
             shoot_sound.play()
+            COUNT_OF_SHOTS += 1
 
         bg_group.draw(SCREEN)
         bg_group.update()
@@ -639,6 +648,8 @@ def main():
             enemy.check_alive()
             if pygame.sprite.collide_mask(player, enemy):
                 player.reduce_hp()
+            if not enemy.alive():
+                COUNT_OF_KILLED_ENEMIES += 1
         for pl in player_group:
             pl.check_alive()
 
@@ -677,7 +688,6 @@ def main():
 
 def pause():
     global SCORE
-    print(SCORE)
     surface = pygame.Surface(SIZE)
     surface.set_alpha(70)
     is_paused = True
@@ -737,7 +747,6 @@ def display_text(surface, text, x, y, font_size=40, color=(255, 255, 255), draw_
 
 def shop():
     global player_stats, SCORE, purchased_ships
-    print(SCORE)
     shop_surface = pygame.Surface(SIZE)
     shop_surface.blit(BACKGROUND_FON, (0, 0))
     font_size = 30
@@ -915,3 +924,37 @@ def delete_all_sprites():
         boom.kill()
     for heart in hearts_group:
         heart.kill()
+
+
+def level_completed(score):
+    global COUNT_OF_KILLED_ENEMIES, COUNT_OF_SHOTS, SCORE
+
+    results_surface = pygame.Surface(SIZE)
+    results_surface.set_alpha(30)
+    level_completed_img = pygame.transform.scale(load_image('level_completed.png', -1), (300, 200))
+
+    next_btn = ClassicButton(pygame.font.SysFont('Jokerman', 38), 680, 730, 'Next')
+
+    display_text(results_surface, 'Еnemies killed {}'.format(COUNT_OF_KILLED_ENEMIES), 100, 300, font_size=70)
+    display_text(results_surface, 'Count of shots {}'.format(COUNT_OF_SHOTS), 100, 400, font_size=70)
+    display_text(results_surface, 'SCORE + {}'.format(score), 100, 500, font_size=70)
+
+    level_completed_sound.play()
+
+    is_running = True
+    while is_running:
+        SCREEN.blit(results_surface, (0, 0))
+        SCREEN.blit(level_completed_img, (250, 50))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+
+        if next_btn.is_clicked():
+            btn_sound.play()
+            pass
+
+        next_btn.render(SCREEN)
+        next_btn.play_sound_if_btn_selected()
+
+        pygame.display.flip()
