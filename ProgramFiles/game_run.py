@@ -67,6 +67,7 @@ first_bg = FirstBg()
 second_bg = SecondBg()
 
 GAME_TITLE_IMG = pygame.transform.scale(load_image('game_title.png', -1), (300, 200))
+BACKGROUND_FON = pygame.transform.scale(load_image('background1.jpg'), (800, 800))
 
 shoot_sound.set_volume(loud_of_effects)
 boom_sound.set_volume(loud_of_effects)
@@ -272,14 +273,14 @@ def settings():
 
     clock = pygame.time.Clock()
     surface = pygame.Surface(SIZE)
-    font = pygame.font.Font(None, 38)
+    font = pygame.font.SysFont('Jokerman', 38)
 
     surface.fill((128, 128, 128))
     # это для того чтобы была иллюзия плавного перехода
     surface.set_alpha(50)
 
-    back_btn = ClassicButton(font, 20, 750, 'Back')
-    apply_btn = ClassicButton(font, 700, 750, 'Apply')
+    back_btn = ClassicButton(font, 20, 730, 'Back')
+    apply_btn = ClassicButton(font, 680, 730, 'Apply')
 
     pg_key = pygame.key
 
@@ -311,6 +312,7 @@ def settings():
                 terminate()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
+                    btn_sound.play()
                     return
                 else:
                     # изменение текста в rect
@@ -538,7 +540,7 @@ def third_boss_attack(enemy_reinforcement, enemy, count):
 
 
 def main():
-    global player, dx, dy
+    global player, dx, dy, SCORE
     pygame.display.set_caption(GAME_TITLE)
     clock = pygame.time.Clock()
 
@@ -573,7 +575,7 @@ def main():
                 del waves[0]
             else:
                 cur.execute("""UPDATE score
-                                                SET SCORE = ?""", (SCORE,))
+                                        SET SCORE = ?""", (SCORE,))
                 con.commit()
                 running = False
 
@@ -687,6 +689,7 @@ def pause():
                 terminate()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
+                    btn_sound.play()
                     return False
 
         if resume_btn.is_clicked():
@@ -726,17 +729,18 @@ def display_text(surface, text, x, y, font_size=40, color=(255, 255, 255), draw_
 
 def shop():
     global player_stats, SCORE, purchased_ships
-    print(player_stats)
-    print(ship4_characteristics)
     shop_surface = pygame.Surface(SIZE)
+    shop_surface.blit(BACKGROUND_FON, (0, 0))
     font_size = 30
+    clock = pygame.time.Clock()
 
     ship1 = pygame.transform.scale(load_image('player.png'), (100, 100))
     ship2 = pygame.transform.scale(load_image('player_from_shop1.png'), (100, 100))
     ship3 = pygame.transform.scale(load_image('player_from_shop2.png'), (100, 100))
     ship4 = pygame.transform.scale(load_image('player_from_shop3.png'), (70, 70))
 
-    buy_btn = ShopButton(300, 700, 200, 20)
+    buy_btn = ShopButton(50, 700, 200, 20)
+    select_btn = ShopButton(500, 700, 250, 20, text='Select')
 
     rects = [AnimatedRect(50, 90, ship2.get_width() + 20, ship1.get_height() + 30, 0),
              AnimatedRect(240, 90, ship2.get_width() + 20, ship2.get_height() + 30, 1),
@@ -765,6 +769,7 @@ def shop():
             if event.type == pygame.QUIT:
                 terminate()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                btn_sound.play()
                 return
 
         if buy_btn.is_clicked():
@@ -797,15 +802,42 @@ def shop():
                         cur.execute("""UPDATE score SET SCORE = ?""", (SCORE,))
                         con.commit()
                         return
-                    btn_sound.play()
+
+        if select_btn.is_clicked():
+            for rect in rects:
+                if rect.active:
+                    if rect.id == 0:
+                        btn_sound.play()
+                        player_stats[:-1] = ship1_characteristics[:-1]
+                        player_stats[-1] = 'player.png'
+                        return
+                    if rect.id == 1 and 'player_from_shop1.png' in purchased_ships:
+                        btn_sound.play()
+                        player_stats[:-1] = ship2_characteristics[:-1]
+                        player_stats[-1] = 'player_from_shop1.png'
+                        return
+                    if rect.id == 2 and 'player_from_shop2.png' in purchased_ships:
+                        btn_sound.play()
+                        player_stats[:-1] = ship3_characteristics[:-1]
+                        player_stats[-1] = 'player_from_shop2.png'
+                        return
+                    if rect.id == 3 and 'player_from_shop3.png' in purchased_ships:
+                        btn_sound.play()
+                        player_stats[:-1] = ship4_characteristics[:-1]
+                        player_stats[-1] = 'player_from_shop3.png'
+                        return
 
         for rect in rects:
             rect.update()
             rect.draw(shop_surface)
 
         buy_btn.render(SCREEN)
-        buy_btn.play_sound_if_btn_selected()
+        select_btn.render(SCREEN)
 
+        buy_btn.play_sound_if_btn_selected()
+        select_btn.play_sound_if_btn_selected()
+
+        clock.tick(FPS)
         pygame.display.flip()
 
 
