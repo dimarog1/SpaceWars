@@ -3,6 +3,7 @@ import sqlite3
 import sys
 from itertools import cycle
 
+import pygame.font
 import stats as stats
 
 from ProgramFiles.buttons import *
@@ -50,12 +51,13 @@ loudness = cur.execute("""SELECT music_sound, music_effects_sound FROM volume_va
 bindings = con.cursor().execute("""SELECT Key_up, Key_down, Key_right, Key_left FROM key_bindings""")
 player_stats = con.cursor().execute("""SELECT size, damage, speed_of_shooting,
                                     speed_of_ship, hp, luck, image FROM current_ship_stats""")
-ships_characteristic = con.cursor().execute("""SELECT price, size, damage, speed_of_shooting, 
-                                                speed_of_ship, hp, luck FROM shop""")
+ships_characteristic = con.cursor().execute("""SELECT size, damage, speed_of_shooting, speed_of_ship, 
+                                                hp, luck, price FROM shop""")
 
 SCORE = con.cursor().execute("""SELECT SCORE FROM score""")
 SCORE = list(*SCORE)[0]
 player_stats = list(*player_stats)
+purchased_ships = ['player.png']
 
 loud_of_menu_music, loud_of_effects = map(float, *loudness)
 KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT = map(int, *bindings)
@@ -723,6 +725,9 @@ def display_text(surface, text, x, y, font_size=40, color=(255, 255, 255), draw_
 
 
 def shop():
+    global player_stats, SCORE, purchased_ships
+    print(player_stats)
+    print(ship4_characteristics)
     shop_surface = pygame.Surface(SIZE)
     font_size = 30
 
@@ -733,10 +738,10 @@ def shop():
 
     buy_btn = ShopButton(300, 700, 200, 20)
 
-    rects = [AnimatedRect(50, 90, ship2.get_width() + 20, ship1.get_height() + 30),
-             AnimatedRect(240, 90, ship2.get_width() + 20, ship2.get_height() + 30),
-             AnimatedRect(430, 90, ship3.get_width() + 20, ship3.get_height() + 30),
-             AnimatedRect(610, 90, ship4.get_width() + 50, ship4.get_height() + 60)]
+    rects = [AnimatedRect(50, 90, ship2.get_width() + 20, ship1.get_height() + 30, 0),
+             AnimatedRect(240, 90, ship2.get_width() + 20, ship2.get_height() + 30, 1),
+             AnimatedRect(430, 90, ship3.get_width() + 20, ship3.get_height() + 30, 2),
+             AnimatedRect(610, 90, ship4.get_width() + 50, ship4.get_height() + 60, 3)]
 
     shop_surface.blit(ship1, (60, 100))
     shop_surface.blit(ship2, (250, 100))
@@ -745,7 +750,7 @@ def shop():
 
     display_text(shop_surface, 'SCORE: {}'.format(SCORE), 600, 10)
 
-    titles = ['Price', 'Size', 'Damage', 'Shots speed', 'Ship speed', 'HP', 'Luck']
+    titles = ['Size', 'Damage', 'Shots speed', 'Ship speed', 'HP', 'Luck', 'Price']
     for i in range(len(ship1_characteristics)):
 
         display_text(shop_surface, f'{titles[i]}: {ship1_characteristics[i]}', 50, 250 + i * 50, font_size)
@@ -765,8 +770,32 @@ def shop():
         if buy_btn.is_clicked():
             for rect in rects:
                 if rect.active:
+                    if rect.id == 1 and SCORE >= 200 and 'player_from_shop1.png' not in purchased_ships:
+                        purchased_ships.append('player_from_shop1.png')
+                        btn_sound.play()
+                        player_stats[:-1] = ship2_characteristics[:-1]
+                        player_stats[-1] = 'player_from_shop1.png'
+                        SCORE -= ship2_characteristics[-1]
+                        cur.execute("""UPDATE score SET SCORE = ?""", (SCORE,))
+                        return
+                    if rect.id == 2 and SCORE >= 400 and 'player_from_shop2.png' not in purchased_ships:
+                        purchased_ships.append('player_from_shop2.png')
+                        btn_sound.play()
+                        player_stats[:-1] = ship3_characteristics[:-1]
+                        player_stats[-1] = 'player_from_shop2.png'
+                        SCORE -= ship3_characteristics[-1]
+                        cur.execute("""UPDATE score SET SCORE = ?""", (SCORE,))
+                        return
+                    if rect.id == 3 and SCORE >= 600 and 'player_from_shop3.png' not in purchased_ships:
+                        purchased_ships.append('player_from_shop3.png')
+                        btn_sound.play()
+                        player_stats[:-1] = ship4_characteristics[:-1]
+                        player_stats[-1] = 'player_from_shop3.png'
+                        SCORE -= ship4_characteristics[-1]
+                        cur.execute("""UPDATE score SET SCORE = ?""", (SCORE,))
+                        return
                     btn_sound.play()
-                    return
+                    con.commit()
 
         for rect in rects:
             rect.update()
@@ -840,3 +869,5 @@ def delete_all_sprites():
         enemy.kill()
     for boom in boom_group:
         boom.kill()
+    for heart in hearts_group:
+        heart.kill()

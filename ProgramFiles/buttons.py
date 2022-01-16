@@ -137,10 +137,11 @@ class InputBox(BoxAndRect, Button):
 
 
 class AnimatedRect(BoxAndRect):
-    def __init__(self, x, y, w, h, active_color=(255, 0, 0), inactive_color=(0, 255, 0)):
+    def __init__(self, x, y, w, h, id, active_color=(255, 0, 0), inactive_color=(0, 255, 0)):
         super().__init__(x, y, w, h, active_color, inactive_color)
         self.active = False
-        self.curr_color = None
+        self.curr_color = inactive_color
+        self.id = id
 
     def update(self):
         mouse_pos = pygame.mouse.get_pos()

@@ -228,5 +228,3 @@ class BoxAndRect:
         self.x, self.y = x, y
         self.width, self.height = w, h
         self.active_color, self.inactive_color = active_color, inactive_color
-        self.active = False
-        self.curr_color = None
