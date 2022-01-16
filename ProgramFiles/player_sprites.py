@@ -100,14 +100,14 @@ class Shield(pygame.sprite.Sprite):
         super().__init__(shield_group)
         self.parent_ship = parent_ship
         self.image = pygame.transform.scale(load_image('shield.png'), (self.parent_ship.width + 20,
-                                                                       self.parent_ship.height + 20))
+                                                                       self.parent_ship.height + 24))
         self.image.set_alpha(127)
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.rect = self.image.get_rect().move(
             self.parent_ship.rect.x,
-            self.parent_ship.rect.y,
+            self.parent_ship.rect.y + 2,
         )
         self.hp = 1
 
@@ -172,7 +172,7 @@ class PlayerProjectileLevelTwo(PlayerProjectile):
             self.parent_ship.rect.x + self.parent_ship.width // 2 - self.width // 2,
             self.parent_ship.rect.y - self.height
         )
-        self.damage = self.parent_ship.damage * 2
+        self.damage = self.parent_ship.damage * 1.5
 
 
 # Выстрел игрока 3 lvl
@@ -188,7 +188,7 @@ class PlayerProjectileLevelThree(PlayerProjectile):
             self.parent_ship.rect.x + self.parent_ship.width // 2 - self.width // 2,
             self.parent_ship.rect.y - self.height
         )
-        self.damage = self.parent_ship.damage * 3
+        self.damage = self.parent_ship.damage * 2
 
 
 # Выстрел игрока 4 lvl
@@ -204,7 +204,7 @@ class PlayerProjectileLevelFour(PlayerProjectile):
             self.parent_ship.rect.x + self.parent_ship.width // 2 - self.width // 2,
             self.parent_ship.rect.y - self.height
         )
-        self.damage = self.parent_ship.damage * 4
+        self.damage = self.parent_ship.damage * 2.5
 
 
 # Сердечки

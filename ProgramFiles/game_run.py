@@ -948,6 +948,8 @@ def delete_all_sprites():
         heart.kill()
     for gain in gains_group:
         gain.kill()
+    for shield in shield_group:
+        shield.kill()
 
 
 def level_completed(score):

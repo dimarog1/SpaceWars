@@ -85,8 +85,8 @@ class EnemyLevelOne(Enemy):
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.hp = 50
-        self.chance = 30
+        self.hp = 50 + (50 * (COMPLEXITY - 1)) // 2
+        self.chance = 30 - 5 * COMPLEXITY
         self.hp_bar = HpBar(self, self.screen)
 
 
@@ -99,8 +99,8 @@ class EnemyLevelTwo(Enemy):
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.hp = 100
-        self.chance = 40
+        self.hp = 100 + (100 * (COMPLEXITY - 1)) // 2
+        self.chance = 40 - 5 * COMPLEXITY
         self.hp_bar = HpBar(self, self.screen)
 
 
@@ -113,8 +113,8 @@ class EnemyLevelThree(Enemy):
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.hp = 200
-        self.chance = 50
+        self.hp = 200 + (200 * (COMPLEXITY - 1)) // 2
+        self.chance = 50 - 5 * COMPLEXITY
         self.hp_bar = HpBar(self, self.screen)
 
 
@@ -127,8 +127,8 @@ class EnemyLevelFour(Enemy):
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.hp = 300
-        self.chance = 60
+        self.hp = 300 + (300 * (COMPLEXITY - 1)) // 2
+        self.chance = 60 - 5 * COMPLEXITY
         self.hp_bar = HpBar(self, self.screen)
 
 
@@ -141,12 +141,12 @@ class Boss(Enemy):
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.max_hp = 4000
+        self.max_hp = 4000 + (4000 * (COMPLEXITY - 1)) // 2
         self.hp = self.max_hp
         self.chance = 0
         self.speed_of_ship = 4
         self.hp_bar = HpBar(self, self.screen)
-        self.attack_intervals = 220
+        self.attack_intervals = 220 - (COMPLEXITY - 1) * 15
         self.plug = 0
         self.attacks = [self.first_attack, self.second_attack]
         self.attack_type = -1
