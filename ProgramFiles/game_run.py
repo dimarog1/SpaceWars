@@ -777,6 +777,7 @@ def shop():
                         player_stats[-1] = 'player_from_shop1.png'
                         SCORE -= ship2_characteristics[-1]
                         cur.execute("""UPDATE score SET SCORE = ?""", (SCORE,))
+                        con.commit()
                         return
                     if rect.id == 2 and SCORE >= 400 and 'player_from_shop2.png' not in purchased_ships:
                         purchased_ships.append('player_from_shop2.png')
@@ -785,6 +786,7 @@ def shop():
                         player_stats[-1] = 'player_from_shop2.png'
                         SCORE -= ship3_characteristics[-1]
                         cur.execute("""UPDATE score SET SCORE = ?""", (SCORE,))
+                        con.commit()
                         return
                     if rect.id == 3 and SCORE >= 600 and 'player_from_shop3.png' not in purchased_ships:
                         purchased_ships.append('player_from_shop3.png')
@@ -793,9 +795,9 @@ def shop():
                         player_stats[-1] = 'player_from_shop3.png'
                         SCORE -= ship4_characteristics[-1]
                         cur.execute("""UPDATE score SET SCORE = ?""", (SCORE,))
+                        con.commit()
                         return
                     btn_sound.play()
-                    con.commit()
 
         for rect in rects:
             rect.update()
