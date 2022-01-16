@@ -57,7 +57,12 @@ ships_characteristic = con.cursor().execute("""SELECT size, damage, speed_of_sho
 SCORE = con.cursor().execute("""SELECT SCORE FROM score""")
 SCORE = list(*SCORE)[0]
 player_stats = list(*player_stats)
-purchased_ships = ['player.png']
+
+purchased_ships_data = con.cursor().execute("""SELECT image FROM purchased_ships""")
+purchased_ships = []
+for i in purchased_ships_data:
+    purchased_ships.append(i[0])
+print(purchased_ships)
 
 loud_of_menu_music, loud_of_effects = map(float, *loudness)
 KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT = map(int, *bindings)
@@ -732,7 +737,6 @@ def shop():
     shop_surface = pygame.Surface(SIZE)
     shop_surface.blit(BACKGROUND_FON, (0, 0))
     font_size = 30
-    clock = pygame.time.Clock()
 
     ship1 = pygame.transform.scale(load_image('player.png'), (100, 100))
     ship2 = pygame.transform.scale(load_image('player_from_shop1.png'), (100, 100))
@@ -782,6 +786,7 @@ def shop():
                         player_stats[-1] = 'player_from_shop1.png'
                         SCORE -= ship2_characteristics[-1]
                         cur.execute("""UPDATE score SET SCORE = ?""", (SCORE,))
+                        cur.execute("""INSERT INTO purchased_ships(image) VALUES(?)""", (player_stats[-1],))
                         con.commit()
                         return
                     if rect.id == 2 and SCORE >= 400 and 'player_from_shop2.png' not in purchased_ships:
@@ -791,6 +796,7 @@ def shop():
                         player_stats[-1] = 'player_from_shop2.png'
                         SCORE -= ship3_characteristics[-1]
                         cur.execute("""UPDATE score SET SCORE = ?""", (SCORE,))
+                        cur.execute("""INSERT INTO purchased_ships(image) VALUES(?)""", (player_stats[-1],))
                         con.commit()
                         return
                     if rect.id == 3 and SCORE >= 600 and 'player_from_shop3.png' not in purchased_ships:
@@ -800,6 +806,7 @@ def shop():
                         player_stats[-1] = 'player_from_shop3.png'
                         SCORE -= ship4_characteristics[-1]
                         cur.execute("""UPDATE score SET SCORE = ?""", (SCORE,))
+                        cur.execute("""INSERT INTO purchased_ships(image) VALUES(?)""", (player_stats[-1],))
                         con.commit()
                         return
 

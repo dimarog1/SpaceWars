@@ -10,6 +10,8 @@ class Player(Ship, pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self, player_group)
         self.image = pygame.transform.scale(load_image(image), (int(size.split()[0]), int(size.split()[1])))
         self.mask = pygame.mask.from_surface(self.image)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
         self.rect = self.image.get_rect().move(WIDTH // 2 - self.width // 2, HEIGHT + 10)
         self.damage = damage
         self.hp = hp
@@ -97,7 +99,8 @@ class Shield(pygame.sprite.Sprite):
     def __init__(self, parent_ship):
         super().__init__(shield_group)
         self.parent_ship = parent_ship
-        self.image = pygame.transform.scale(load_image('shield.png'), (120, 120))
+        self.image = pygame.transform.scale(load_image('shield.png'), (self.parent_ship.width + 20,
+                                                                       self.parent_ship.height + 20))
         self.image.set_alpha(127)
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
@@ -147,6 +150,12 @@ class PlayerProjectileLevelOne(PlayerProjectile):
         PlayerProjectile.__init__(self, parent_ship)
         self.image = pygame.transform.scale(load_image('shot.png'), (17, 27))
         self.mask = pygame.mask.from_surface(self.image)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.rect = self.image.get_rect().move(
+            self.parent_ship.rect.x + self.parent_ship.width // 2 - self.width // 2,
+            self.parent_ship.rect.y - self.height
+        )
         self.damage = self.parent_ship.damage * 1
 
 
