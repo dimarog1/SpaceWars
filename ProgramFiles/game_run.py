@@ -556,8 +556,6 @@ def main():
     for wave in level:
         if wave != "SCORE":
             waves.append(level[wave])
-        else:
-            SCORE = level[wave]
 
     player = Player(SCREEN, *player_stats)
     count = 1
@@ -579,6 +577,9 @@ def main():
                 enemies_of_wave = start_enemy_wave(waves[0], name_of_wave)
                 del waves[0]
             else:
+                for wave in level:
+                    if wave == 'SCORE':
+                        SCORE = level[wave]
                 cur.execute("""UPDATE score
                                         SET SCORE = ?""", (SCORE,))
                 con.commit()
@@ -675,6 +676,8 @@ def main():
 
 
 def pause():
+    global SCORE
+    print(SCORE)
     surface = pygame.Surface(SIZE)
     surface.set_alpha(70)
     is_paused = True
@@ -734,6 +737,7 @@ def display_text(surface, text, x, y, font_size=40, color=(255, 255, 255), draw_
 
 def shop():
     global player_stats, SCORE, purchased_ships
+    print(SCORE)
     shop_surface = pygame.Surface(SIZE)
     shop_surface.blit(BACKGROUND_FON, (0, 0))
     font_size = 30
@@ -844,7 +848,6 @@ def shop():
         buy_btn.play_sound_if_btn_selected()
         select_btn.play_sound_if_btn_selected()
 
-        clock.tick(FPS)
         pygame.display.flip()
 
 
