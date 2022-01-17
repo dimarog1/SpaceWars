@@ -1,15 +1,17 @@
 import random
 
+import columns as columns
 import pygame.rect
 
 from ProgramFiles.base_classes import *
 from ProgramFiles.player_sprites import ShotSpeedGain, ShotRangeGain, ShieldGain
+from music.sounds import shoot_sound, boss_second_attack_sound
 
 
 # --- Враги ---
 
 class Enemy(Ship, pygame.sprite.Sprite):
-    def __init__(self, screen, position=(0, -500)):
+    def __init__(self, screen, player, position=(0, -500)):
         Ship.__init__(self, screen, position)
         pygame.sprite.Sprite.__init__(self, enemy_group)
         self.speed_of_ship = 2
@@ -18,9 +20,10 @@ class Enemy(Ship, pygame.sprite.Sprite):
         self.__show_hp_bar = False
         self.shooting = False
         self.projectile = EnemyProjectileLevelOne
-        self.speed_of_shooting = 60
-        self.chance = 40
+        self.speed_of_shooting = 50 - 5 * (COMPLEXITY - 1)
+        self.chance = 20
         self.gains = (ShotSpeedGain, ShotRangeGain, ShieldGain)
+        self.player = player
 
     def set_start_pos(self, x, y):
         self.rect = self.image.get_rect().move(x, y)
@@ -46,17 +49,27 @@ class Enemy(Ship, pygame.sprite.Sprite):
             boom_sound.play()
 
     def spawn_gain(self):
-        do_spawn_gain = random.choices((True, False), weights=[self.chance, 100 - self.chance])[0]
+        do_spawn_gain = random.choices((True, False), weights=[self.chance + self.player.luck, 100 - self.chance])[0]
         flag = True
         if do_spawn_gain:
             while flag:
+                if len(shield_group) >= 1 and self.player.speed_of_shooting == 10 and self.player.level_of_projectiles == 4:
+                    return
                 gain = random.choice(self.gains)(self)
                 if len(shield_group) >= 1 and isinstance(gain, ShieldGain):
+                    gain.kill()
+                    continue
+                if self.player.speed_of_shooting == 10 and isinstance(gain, ShotSpeedGain):
+                    gain.kill()
+                    continue
+                if self.player.level_of_projectiles == 4 and isinstance(gain, ShotRangeGain):
+                    gain.kill()
                     continue
                 flag = False
 
     def shoot(self):
         enemy_shot = self.projectile(self)
+        shoot_sound.play()
 
     def update(self):
         if self.border <= self.rect.x + self.speed_of_ship <= WIDTH - self.width - self.border:
@@ -65,84 +78,84 @@ class Enemy(Ship, pygame.sprite.Sprite):
 
 # Враг первого уровня
 class EnemyLevelOne(Enemy):
-    def __init__(self, screen):
-        Enemy.__init__(self, screen)
+    def __init__(self, screen, player):
+        Enemy.__init__(self, screen, player)
         self.image = pygame.transform.scale(load_image('enemy_level_one.png'), (70, 70))
         self.projectile = EnemyProjectileLevelOne
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.hp = 50
-        self.chance = 40
+        self.hp = 50 + (50 * (COMPLEXITY - 1)) // 2
+        self.chance = 30 - 5 * COMPLEXITY
         self.hp_bar = HpBar(self, self.screen)
 
 
 # Враг второго уровня
 class EnemyLevelTwo(Enemy):
-    def __init__(self, screen):
-        Enemy.__init__(self, screen)
+    def __init__(self, screen, player):
+        Enemy.__init__(self, screen, player)
         self.image = pygame.transform.scale(load_image('enemy_level_two.png'), (90, 90))
         self.projectile = EnemyProjectileLevelTwo
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.hp = 100
-        self.chance = 50
+        self.hp = 100 + (100 * (COMPLEXITY - 1)) // 2
+        self.chance = 40 - 5 * COMPLEXITY
         self.hp_bar = HpBar(self, self.screen)
 
 
 # Враг третьего уровня
 class EnemyLevelThree(Enemy):
-    def __init__(self, screen):
-        Enemy.__init__(self, screen)
+    def __init__(self, screen, player):
+        Enemy.__init__(self, screen, player)
         self.image = pygame.transform.scale(load_image('enemy_level_three.png'), (110, 110))
         self.projectile = EnemyProjectileLevelThree
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.hp = 200
-        self.chance = 60
+        self.hp = 200 + (200 * (COMPLEXITY - 1)) // 2
+        self.chance = 50 - 5 * COMPLEXITY
         self.hp_bar = HpBar(self, self.screen)
 
 
 # Враг четвёртого уровня
 class EnemyLevelFour(Enemy):
-    def __init__(self, screen):
-        Enemy.__init__(self, screen)
+    def __init__(self, screen, player):
+        Enemy.__init__(self, screen, player)
         self.image = pygame.transform.scale(load_image('enemy_level_four.png'), (130, 130))
         self.projectile = EnemyProjectileLevelFour
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.hp = 300
-        self.chance = 80
+        self.hp = 300 + (300 * (COMPLEXITY - 1)) // 2
+        self.chance = 60 - 5 * COMPLEXITY
         self.hp_bar = HpBar(self, self.screen)
 
 
 # Босс
 class Boss(Enemy):
-    def __init__(self, screen):
-        Enemy.__init__(self, screen)
+    def __init__(self, screen, player):
+        Enemy.__init__(self, screen, player)
         self.image = pygame.transform.scale(load_image('boss.png'), (130, 170))
         self.projectile_image = pygame.transform.scale(load_image('shot_level_four.png'), (110, 70))
         self.mask = pygame.mask.from_surface(self.image)
         self.width = self.image.get_width()
         self.height = self.image.get_height()
-        self.max_hp = 3000
-        self.hp = 3000
+        self.max_hp = 4000 + (4000 * (COMPLEXITY - 1)) // 2
+        self.hp = self.max_hp
+        self.chance = 0
         self.speed_of_ship = 4
         self.hp_bar = HpBar(self, self.screen)
-        self.attack_intervals = 220
+        self.attack_intervals = 220 - (COMPLEXITY - 1) * 15
         self.plug = 0
         self.attacks = [self.first_attack, self.second_attack]
         self.attack_type = -1
-        self.projectile = None
+        self.projectile = EnemyProjectileLevelFour
         self.prev_attack = None
 
         # Пераметры для первой атаки
         self.attack_points = []
         self.point_to_move = 0
-        self.projectiles_types = (EnemyProjectileLevelThree, EnemyProjectileLevelFour)
 
         # Пераметры для второй атаки
         self.attack_duration = 150
@@ -151,14 +164,12 @@ class Boss(Enemy):
 
         # Пераметры для третьей атаки
         self.doing_third_attack = False
-        self.waves = (
-            [1, 1],
-            [1, 1, 1],
-            [1, 2, 1],
-            [2, 2],
-            [1, 3, 1],
-            [4]
-        )
+        self.waves = [
+            [2, 3, 2],
+            [2, 4, 2],
+            [3, 4, 3],
+        ]
+        self.count_of_third_attack = 0
 
     def choose_attack(self):
         self.attack_points = [(random.randint(50, 650), random.randint(10, 200)), 0, 0]
@@ -205,7 +216,6 @@ class Boss(Enemy):
             self.rect.x += move[0]
             self.rect.y += move[1]
         else:
-            self.projectile = random.choice(self.projectiles_types)
             self.shoot()
             self.point_to_move += 1
 
@@ -216,9 +226,15 @@ class Boss(Enemy):
             return
         if count % self.shoots_interval == 0:
             angles = (120, 150, 180, 210, 240)
+            boss_second_attack_sound.play()
             for angle in angles:
                 projectile = self.projectile_second_attack(self, angle)
         self.attack_duration -= 1
+
+    def third_attack(self):
+        wave = self.waves[self.count_of_third_attack]
+        self.count_of_third_attack += 1
+        return wave
 
 
 # --- Выстрел ---
@@ -234,7 +250,7 @@ class EnemyProjectile(Projectile, pygame.sprite.Sprite):
             self.parent_ship.rect.x + self.parent_ship.width // 2 - self.width // 2,
             self.parent_ship.rect.y + self.parent_ship.height
         )
-        self.speed_of_shot = 6
+        self.speed_of_shot = 7
 
     def change_pos(self):
         if self.rect.y + self.speed_of_shot <= HEIGHT + self.height:
@@ -252,7 +268,7 @@ class EnemyProjectile(Projectile, pygame.sprite.Sprite):
 
         for player in player_group:
             if pygame.sprite.collide_mask(self, player):
-                player.hp -= 1
+                player.reduce_hp()
                 self.kill()
                 return
 
@@ -367,4 +383,23 @@ class HpBar:
         self.x1 = self.parent.rect.x
         self.y1 = self.parent.rect.y + self.parent.height + 5
         pygame.draw.rect(self.screen, self.color, (self.x1, self.y1,
-                                                   self.w * (self.parent.hp / self.max_hp), self.h))
+                                           self.w * (self.parent.hp / self.max_hp), self.h))
+
+
+# враг в меню
+class SecretEnemy(Enemy):
+    def __init__(self, screen, player):
+        Enemy.__init__(self, screen, player)
+        self.image = pygame.transform.scale(load_image('secret_enemy.png'), (170, 200))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+
+    def change_pos(self, dx, dy):
+        if 50 <= self.rect.x + dx * self.speed_of_ship <= WIDTH - self.width - 50:
+            self.rect = self.rect.move(
+                self.speed_of_ship * dx,
+                self.speed_of_ship * dy
+            )
+        else:
+            self.speed_of_ship *= -1

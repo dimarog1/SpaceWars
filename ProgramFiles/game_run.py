@@ -914,7 +914,10 @@ def game_over():
             game_over_sound.stop()
             btn_sound.play()
             delete_all_sprites()
-            main(current_level)
+            if isinstance(current_level, list):
+                main(*current_level)
+            else:
+                main(current_level)
 
         if back_to_menu_btn.is_clicked():
             dx, dy = 0, 0
@@ -988,6 +991,7 @@ def level_completed(score):
             btn_sound.play()
             if LEVELS:
                 level = LEVELS.pop()
+                current_level = level
                 con.cursor().execute("""UPDATE current_level SET level = ?""", (level,))
                 con.commit()
                 main(level)
