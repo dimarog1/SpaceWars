@@ -7,7 +7,7 @@ import pygame.font
 from ProgramFiles.buttons import *
 from ProgramFiles.enemy_sprites import *
 from ProgramFiles.player_sprites import *
-from music.sounds import boom_sound, shoot_sound, btn_sound, fon_sound, selected_btn_sound, game_over_sound,\
+from music.sounds import boom_sound, shoot_sound, btn_sound, fon_sound, selected_btn_sound, game_over_sound, \
     boss_second_attack_sound, level_completed_sound
 
 
@@ -43,7 +43,6 @@ pygame.init()
 pygame.mixer.init()
 SCREEN = pygame.display.set_mode(SIZE)
 
-con = sqlite3.connect('settings.db')
 cur = con.cursor()
 
 loudness = cur.execute("""SELECT music_sound, music_effects_sound FROM volume_values""")
@@ -52,11 +51,13 @@ player_stats = con.cursor().execute("""SELECT size, damage, speed_of_shooting,
                                     speed_of_ship, hp, luck, image FROM current_ship_stats""")
 ships_characteristic = con.cursor().execute("""SELECT size, damage, speed_of_shooting, speed_of_ship, 
                                                 hp, luck, price FROM shop""")
-current_level = list(*con.cursor().execute("""SELECT * FROM current_level"""))
+current_level = list(*con.cursor().execute("""SELECT * FROM current_level"""))[0]
+levels = con.cursor().execute("""SELECT * FROM levels""")
 
 SCORE = con.cursor().execute("""SELECT SCORE FROM score""")
 SCORE = list(*SCORE)[0]
 player_stats = list(*player_stats)
+LEVELS = [el[0] for el in levels]
 
 COUNT_OF_SHOTS = 0
 COUNT_OF_KILLED_ENEMIES = 0
@@ -172,7 +173,7 @@ def menu():
             fon_sound.stop()
             for enemy in enemy_group:
                 enemy.kill()
-            main(*current_level)
+            main(current_level)
 
         if shop_btn.is_clicked():
             btn_sound.play()
@@ -260,7 +261,7 @@ def start_screen():
                     return
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if intro_rect.x < event.pos[0] < intro_rect.x + intro_rect.width \
-                    and intro_rect.y < event.pos[1] < intro_rect.height + intro_rect.y:
+                        and intro_rect.y < event.pos[1] < intro_rect.height + intro_rect.y:
                     btn_sound.play()
                     return
             elif event.type == blink_event:
@@ -614,8 +615,8 @@ def main(level):
                 part2 = int(enemy.max_hp * 0.50)
                 part3 = int(enemy.max_hp * 0.25)
                 if enemy.hp in range(part1 - 50, part1) \
-                    or enemy.hp in range(part2 - 50, part2) \
-                    or enemy.hp in range(part3 - 50, part3):
+                        or enemy.hp in range(part2 - 50, part2) \
+                        or enemy.hp in range(part3 - 50, part3):
                     enemy.attack_type = 3
                     enemy.plug = 1
                     enemy.hp -= 50
@@ -956,8 +957,8 @@ def delete_all_sprites():
 
 
 def level_completed(score):
-    global COUNT_OF_KILLED_ENEMIES, COUNT_OF_SHOTS, SCORE, current_level, dx, dy,\
-        k_up_clicked, k_right_clicked, k_down_clicked, k_left_clicked
+    global COUNT_OF_KILLED_ENEMIES, COUNT_OF_SHOTS, SCORE, current_level, dx, dy, \
+        k_up_clicked, k_right_clicked, k_down_clicked, k_left_clicked, COMPLEXITY, LEVELS
 
     results_surface = pygame.Surface(SIZE)
     results_surface.set_alpha(30)
@@ -993,11 +994,22 @@ def level_completed(score):
                 level = LEVELS.pop()
                 current_level = level
                 con.cursor().execute("""UPDATE current_level SET level = ?""", (level,))
+                con.cursor().execute("""DELETE from levels WHERE level = ?""", (level,))
                 con.commit()
                 main(level)
             else:
-                pass
-                # здесь должно быть финальное окно и конец игры
+                current_level = '.\levels\level_one.json'
+                LEVELS = ['.\levels\level_five.json', '.\levels\level_four.json', '.\levels\level_three.json',
+                          '.\levels\level_two.json']
+                con.cursor().execute("""UPDATE current_level SET level = ?""", ('.\levels\level_one.json',))
+                for level in LEVELS:
+                    con.cursor().execute("""INSERT INTO levels(level) VALUES(?)""", (level,))
+                con.commit()
+                if COMPLEXITY < 4:
+                    COMPLEXITY += 1
+                    con.cursor().execute("""UPDATE difficultness SET difficult = ?""", (COMPLEXITY,))
+                    con.commit()
+                menu()
 
         next_btn.render(SCREEN)
         next_btn.play_sound_if_btn_selected()

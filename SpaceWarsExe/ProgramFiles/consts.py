@@ -1,10 +1,10 @@
 import pygame
+import sqlite3
 
 # !!! CONSTS !!!
 GAME_TITLE = "SPACE WARS"
 SIZE = WIDTH, HEIGHT = 800, 800
 BACKGROUND_COLOR = pygame.Color('black')
 FPS = 60
-COMPLEXITY = 1
-LEVELS = [r'.\levels\level_five.json', r'.\levels\level_four.json',
-          r'.\levels\level_three.json', r'.\levels\level_two.json']
+con = sqlite3.connect('settings.db')
+COMPLEXITY = list(*con.cursor().execute("""SELECT difficult FROM difficultness"""))[0]
