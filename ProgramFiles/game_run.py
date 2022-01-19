@@ -59,6 +59,8 @@ SCORE = list(*SCORE)[0]
 player_stats = list(*player_stats)
 LEVELS = [el[0] for el in levels]
 
+FONT = pygame.font.Font('fonts/jokermanletplain.ttf', 58)
+
 COUNT_OF_SHOTS = 0
 COUNT_OF_KILLED_ENEMIES = 0
 
@@ -150,15 +152,14 @@ def menu():
     background_enemies[5].set_start_pos(x, 1500)
 
     count = 0
-    font = pygame.font.SysFont('Jokerman', 48)
     clock = pygame.time.Clock()
 
     running = True
 
-    play_btn = ClassicButton(font, 350, 240, 'Play')
-    shop_btn = ClassicButton(font, 350, 310, 'Shop')
-    settings_btn = ClassicButton(font, 350, 380, 'Settings')
-    quit_btn = ClassicButton(font, 350, 450, 'Quit')
+    play_btn = ClassicButton(FONT, 350, 240, 'Play')
+    shop_btn = ClassicButton(FONT, 350, 310, 'Shop')
+    settings_btn = ClassicButton(FONT, 350, 380, 'Settings')
+    quit_btn = ClassicButton(FONT, 350, 450, 'Quit')
 
     fon_sound.play(-1)
 
@@ -282,7 +283,7 @@ def settings():
 
     clock = pygame.time.Clock()
     surface = pygame.Surface(SIZE)
-    font = pygame.font.SysFont('Jokerman', 38)
+    font = pygame.font.Font('fonts/jokermanletplain.ttf', 48)
 
     surface.fill((128, 128, 128))
     # это для того чтобы была иллюзия плавного перехода
@@ -692,12 +693,11 @@ def pause():
     surface.set_alpha(70)
     is_paused = True
 
-    font = pygame.font.SysFont('Jokerman', 48)
     clock = pygame.time.Clock()
 
-    resume_btn = ClassicButton(font, 320, 200, 'Continue')
-    settings_btn = ClassicButton(font, 320, 270, 'Settings')
-    back_to_menu_btn = ClassicButton(font, 320, 340, 'Back to menu')
+    resume_btn = ClassicButton(FONT, 320, 200, 'Continue')
+    settings_btn = ClassicButton(FONT, 320, 270, 'Settings')
+    back_to_menu_btn = ClassicButton(FONT, 320, 340, 'Back to menu')
 
     while is_paused:
         SCREEN.blit(surface, (0, 0))
@@ -890,7 +890,7 @@ def game_over():
     game_over_img = pygame.transform.scale(load_image('game_over.png', -1), (300, 200))
     game_over_surface.set_alpha(30)
 
-    font = pygame.font.SysFont('Jokerman', 40)
+    font = pygame.font.Font('fonts/jokermanletplain.ttf', 50)
     clock = pygame.time.Clock()
 
     retry_btn = ClassicButton(font, 340, 300, 'Retry')
@@ -964,7 +964,7 @@ def level_completed(score):
     results_surface.set_alpha(30)
     level_completed_img = pygame.transform.scale(load_image('level_completed.png', -1), (300, 200))
 
-    next_btn = ClassicButton(pygame.font.SysFont('Jokerman', 38), 680, 730, 'Next')
+    next_btn = ClassicButton(pygame.font.Font('fonts/jokermanletplain.ttf', 48), 680, 730, 'Next')
 
     display_text(results_surface, 'Еnemies killed {}'.format(COUNT_OF_KILLED_ENEMIES), 100, 300, font_size=70)
     display_text(results_surface, 'Count of shots {}'.format(COUNT_OF_SHOTS), 100, 400, font_size=70)

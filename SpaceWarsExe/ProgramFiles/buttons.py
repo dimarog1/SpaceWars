@@ -168,14 +168,14 @@ class ShopButton(Button):
         self.text = text
 
     def render(self, surface):
-        font = pygame.font.SysFont('Jokerman', 48)
+        font = pygame.font.Font('fonts/jokermanletplain.ttf', 58)
         mouse_pos = pygame.mouse.get_pos()
 
         if self.x < mouse_pos[0] < self.x + self.width and self.y < mouse_pos[1] < self.y + 70:
             pygame.draw.rect(surface, self.color_of_selected_article, (self.x, self.y, self.width, 70), border_radius=10)
         else:
             pygame.draw.rect(surface, self.color_of_article, (self.x, self.y, self.width, 70), border_radius=10)
-        surface.blit(font.render(self.text, 1, (255, 255, 255)), (self.x + 50, self.y - 10))
+        surface.blit(font.render(self.text, 1, (255, 255, 255)), (self.x + 50, self.y + 5))
 
     def is_selected(self):
         mouse_pos = pygame.mouse.get_pos()
